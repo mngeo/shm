@@ -1,0 +1,40 @@
+Provide a detailed high-level plan, framework and AGENTS.md file for a python module to calculate spherical harmonic geomagnetic models like IGRF.
+>It should do these things:
+1. load a given model file from user specified location.  the model will be in text format, in one of the forms given below: 
+	(1) IGRF file as give in "https://www.ngdc.noaa.gov/IAGA/vmod/coeffs/igrf14coeffs.txt". The coefficients are given for 5-year intervals.  The last column gives varitions in coeffecients from the last given year, so that coefficients can be interpolated till 5 years from the last given year.  eg. 2025-30 variation values are given to interpolate 2025 values upto 2030. 
+	(2) in plain text file with columns n, m, g and h. Then year has to be specified by the user in the calling function. Take the current year in which the use has called the function as the default year otherwise.
+	(3) in plain text file with columns [g/h], n, m, value(either g or h, as specified in the first column). Year has to be supplied by the user in the calling function. Only one value will be specified in one column either g or h and it will be specified as either 'g' or 'h' in the first column.  Take the current year as the default year as in case (2).
+	(4) in plain text file with columns n, m, g, h, dg/dt, dh/dt. The last two columns can be used to estimate the coefficients to other years.
+All these file types might have comments starting with "#" and header lines may or may not start with "#". Unless specified other wise in the file(eg. IGRF) or by the user, take the window of time the model is valid as model year +/-5 years.
+
+2. create an object called model containing all the coefficients and also the year for which the coefficients are valid.  In the case of multi year model like IGRF, store coefficients for multiple years efficiently.
+3. provide options to write the model to text files.
+4. provide functions:
+	(1) to calculate model for different geocentric latitude(-90 - 90), longitude(0 - 360) and radius (distance from the center of the earth-km) triplets for the same year.  It should return (Br, Btheta and Bphi) values for each gc lat, lon, rad triplets.
+	(2) to calculate model for different geocentric latitude(-90 - 90), longitude(0 - 360) and radius (distance from the center of the earth-km) triplets for the same year.  It should return (Bx, By and Bz) values for each gc lat, lon, rad triplets. The values must be rotated back to geodetic coordinates.
+	(3) to calculate model for different geocentric latitude(-90 - 90), longitude(0 - 360) and radius (distance from the center of the earth-km) triplets for the same year.  It should return (F, D, I) values for each gc lat, lon, rad triplets. The calculations should first rotate Br, Btheta, Bphi to geodetic coordinate system before calculating F, D, I components.
+	(4) to calculate model for different locations as before but for different times. Input rows are time(MJD2000), gc_lat, lon and radius.  
+	(5) to estimate the model coefficient for any valid year and output them. If (a) dg/dt and dh/dt values are present -> use them to calculate g'=g+dg/dt*t h'=h+dh/dt*t or (b)g,h values are present for two years->for any intermediate year, use linear interpolation.
+The above functions should:
+	(1) give warning if the year of calculation is outside the valid years for the model. but neverthless go ahead with calculation.
+	(2) should be efficient on very large input vectors.
+	(3) expect time in MJD2000, latitude as geocentric, longitude in 0-360 range, R(radius) in km from the center of the earth.  
+	(4) especially for the 4th function above, if input data has multiple years, calculate efficiently by sorting data into time sections that use the same coefficients.
+5. to calculate the output field, convert Gauss' Spherical Harmonic representation of geomagnetic field into matrix form G*c=B, where G is the design matrix, c is the vector of g and h coefficients and B is the output field vector.
+	(1) total number of coefficients(g&h) can change for various models but follow the input model file.
+	(2) user should have the option to truncate the series to any degree and order smaller than the maximum degree and order present in the model file.
+	(3) user should be able to view the number of coefficients, order and degree of the highest order and degree coefficient.
+6. create a data container which holds input data in [MJD2000, gc_lat(-90-90), lon(0-360), R(km)] columns.
+7. create utilites to convert input columns from
+	(1) unix time stamp or standard datetime formats to MJD2000 and reverse.
+	(2) convert geodetic latitude, longitude values to geocentric latitude, longitude and radius values and reverse.
+	(3) convert sea-level height to radius values and reverse.
+	(4) convert gps height to radius values and reverse.
+8. provide utilites to calculate the above fields in a global or local grid with user providing only the bounding box and x, y grid resolutions and GPS height. Provide options to create output maps. use projection based on whether it is global grid or local. Use geopandas library for generating maps.
+
+>Generate instructions as part of planning to generate sphinx documentation for the module.
+>Generate details of how to program the mathematical equations.
+>Write the plan for some test files to load and test the module. some of the tests should be against published igrf values.
+>Read the uploaded documentation for WMM model to understand the steps and processes to compute the fields before doing anything else.
+
+create only the high-level plan, detailed instructions on how to code mathematical equations and part of agents.md file.  do not write code.
