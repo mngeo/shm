@@ -1,0 +1,19 @@
+Metadata-Version: 2.4
+Name: shgeomag
+Version: 0.1.0
+Summary: Spherical-harmonic geomagnetic field modeling (IGRF/WMM/custom)
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: numpy>=1.24
+Requires-Dist: pandas>=2.0
+Requires-Dist: pyproj>=3.6
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-cov>=5.0; extra == "dev"
+Requires-Dist: mypy>=1.8; extra == "dev"
+Requires-Dist: ruff>=0.5; extra == "dev"
+Requires-Dist: sphinx>=7.0; extra == "dev"
+Requires-Dist: pydata-sphinx-theme>=0.16; extra == "dev"
+
+# shm
+evaluation of simple harmonic geomagnetic models
