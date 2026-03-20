@@ -417,7 +417,7 @@
   <section id="compute-global-grid">
 <h1>Compute Global Grid<a class="headerlink" href="#compute-global-grid" title="Link to this heading">#</a></h1>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag.io.reader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_model</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag.utils.grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">global_grid</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">global_grid</span>
 
 <span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="s2">&quot;models/WMM2025.COF&quot;</span><span class="p">)</span>
 <span class="n">ds</span> <span class="o">=</span> <span class="n">global_grid</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="mf">2026.0</span><span class="p">,</span> <span class="o">-</span><span class="mi">180</span><span class="p">,</span> <span class="mi">180</span><span class="p">,</span> <span class="o">-</span><span class="mi">90</span><span class="p">,</span> <span class="mi">90</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>

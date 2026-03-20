@@ -15,6 +15,7 @@ from .time_utils import (
     mjd2000_to_decimal_year,
     unix_to_mjd2000,
 )
+from .grid import global_grid
 
 __all__ = [
     "unix_to_mjd2000",
@@ -28,4 +29,5 @@ __all__ = [
     "sea_level_height_to_radius",
     "radius_to_gps_height",
     "radius_to_sea_level_height",
+    "global_grid",
 ]

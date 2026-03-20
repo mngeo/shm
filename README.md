@@ -22,6 +22,7 @@ cd docs && make html
 import numpy as np
 from shgeomag.io.reader import load_model
 from shgeomag.core.field import compute_fdi
+from shgeomag.utils import global_grid
 
 model = load_model("models/WMM2025.COF")
 f, d, i = compute_fdi(
@@ -32,6 +33,9 @@ f, d, i = compute_fdi(
     year=2026.0,
 )
 print(f, d, i)
+
+grid = global_grid(model, 2026.0, -180, 180, -90, 90, 5.0, 5.0, 0.0)
+print(grid["F"].shape)
 ```
 
 ## Model Files
