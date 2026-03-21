@@ -26,8 +26,8 @@ def _accumulate_field(gc_lat_deg: np.ndarray, lon_deg: np.ndarray, r_km: np.ndar
     cos_mphi, sin_mphi = _compute_trig(phi, coeffs.n_max)
 
     ar = A_REF_KM / r
-    ar_pow = np.ones((coeffs.n_max + 2, n_pts), dtype=float)
-    for n in range(1, coeffs.n_max + 2):
+    ar_pow = np.ones((coeffs.n_max + 3, n_pts), dtype=float)
+    for n in range(1, coeffs.n_max + 3):
         ar_pow[n] = ar_pow[n - 1] * ar
 
     gh = coeffs.to_gh_dict()
@@ -36,7 +36,7 @@ def _accumulate_field(gc_lat_deg: np.ndarray, lon_deg: np.ndarray, r_km: np.ndar
     bp = np.zeros(n_pts, dtype=float)
 
     for n in range(1, coeffs.n_max + 1):
-        common = ar_pow[n + 1]
+        common = ar_pow[n + 2]
         for m in range(0, n + 1):
             g, h = gh[(n, m)]
             c = cos_mphi[m]
