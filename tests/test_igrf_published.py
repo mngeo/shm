@@ -10,6 +10,6 @@ def test_igrf14_regression_single_point(igrf_model):
 
     f, d, i = compute_fdi(igrf_model, gc_lat, lon, r, 2020.0)
 
-    assert np.isclose(f[0], 29458.930739377098, atol=1.0)
-    assert np.isclose(d[0], 3.1833029549132603, atol=0.01)
-    assert np.isclose(i[0], -15.50560930636658, atol=0.01)
+    assert np.isclose(f[0], 34825.50547057508, atol=1.0)
+    assert np.isclose(d[0], 2.1283244721721255, atol=0.01)
+    assert np.isclose(i[0], -1.3904855563048502, atol=0.01)

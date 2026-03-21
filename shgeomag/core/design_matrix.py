@@ -36,38 +36,36 @@ def _compute_schmidt_p_and_dp(theta: np.ndarray, n_max: int) -> tuple[np.ndarray
     sin_t = np.sin(theta)
     n_pts = theta.size
 
-    p = np.zeros((n_max + 1, n_max + 2, n_pts), dtype=float)
+    p = np.zeros((n_max + 1, n_max + 1, n_pts), dtype=float)
+    dp = np.zeros((n_max + 1, n_max + 1, n_pts), dtype=float)
     p[0, 0] = 1.0
 
-    if n_max >= 1:
-        p[1, 0] = cos_t
-        p[1, 1] = sin_t
+    s = np.zeros((n_max + 1, n_max + 1), dtype=float)
+    s[0, 0] = 1.0
 
-    for n in range(2, n_max + 1):
-        m = n
-        p[n, m] = sin_t * np.sqrt((2.0 * n - 1.0) / (2.0 * n)) * p[n - 1, m - 1]
-
-        m = n - 1
-        p[n, m] = cos_t * np.sqrt(2.0 * n - 1.0) * p[n - 1, m]
-
-        for m in range(0, n - 1):
-            a = np.sqrt((4.0 * n * n - 1.0) / (n * n - m * m))
-            b = np.sqrt(
-                ((2.0 * n + 1.0) * (n - 1.0 - m) * (n - 1.0 + m))
-                / ((2.0 * n - 3.0) * (n * n - m * m))
-            )
-            p[n, m] = cos_t * a * p[n - 1, m] - b * p[n - 2, m]
-
-    dp = np.zeros((n_max + 1, n_max + 1, n_pts), dtype=float)
     for n in range(1, n_max + 1):
         for m in range(0, n + 1):
-            term_up = 0.0
-            if m + 1 <= n:
-                term_up = 0.5 * np.sqrt((n - m) * (n + m + 1.0)) * p[n, m + 1]
-            term_dn = 0.0
-            if m > 0:
-                term_dn = 0.5 * np.sqrt((n + m) * (n - m + 1.0)) * p[n, m - 1]
-            dp[n, m] = term_up - term_dn
+            if n == m:
+                p[n, n] = sin_t * p[n - 1, n - 1]
+                dp[n, n] = sin_t * dp[n - 1, n - 1] + cos_t * p[n - 1, n - 1]
+            else:
+                if n == 1:
+                    p[n, m] = cos_t * p[n - 1, m]
+                    dp[n, m] = cos_t * dp[n - 1, m] - sin_t * p[n - 1, m]
+                elif n > 1:
+                    knm = ((n - 1.0)**2 - m**2) / ((2.0 * n - 1.0) * (2.0 * n - 3.0))
+                    p[n, m] = cos_t * p[n - 1, m] - knm * p[n - 2, m]
+                    dp[n, m] = cos_t * dp[n - 1, m] - sin_t * p[n - 1, m] - knm * dp[n - 2, m]
+
+            if m == 0:
+                s[n, 0] = s[n - 1, 0] * (2.0 * n - 1.0) / n
+            else:
+                s[n, m] = s[n, m - 1] * np.sqrt((n - m + 1.0) * (2.0 if m == 1 else 1.0) / (n + m))
+
+    for n in range(1, n_max + 1):
+        for m in range(0, n + 1):
+            p[n, m] *= s[n, m]
+            dp[n, m] *= s[n, m]
 
     return p, dp
 
@@ -140,7 +138,7 @@ def build_design_matrix(
             s = sin_mphi[m]
 
             br_g = common_br * pm * c
-            bt_g = common * dpm * c
+            bt_g = -common * dpm * c
             bp_g = np.where(np.abs(sin_theta) < 1e-10, 0.0, common * m * pm * s / sin_theta)
 
             g[0::3, col] = br_g
@@ -150,7 +148,7 @@ def build_design_matrix(
 
             if m > 0:
                 br_h = common_br * pm * s
-                bt_h = common * dpm * s
+                bt_h = -common * dpm * s
                 bp_h = np.where(np.abs(sin_theta) < 1e-10, 0.0, -common * m * pm * c / sin_theta)
                 g[0::3, col] = br_h
                 g[1::3, col] = bt_h

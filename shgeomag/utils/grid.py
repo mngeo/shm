@@ -5,8 +5,6 @@ from __future__ import annotations
 from typing import Literal
 
 import numpy as np
-
-from shgeomag.core.field import compute_fdi, compute_geo
 from shgeomag.utils.coord_utils import geodetic_to_geocentric
 
 
@@ -49,6 +47,8 @@ def global_grid(
     lon2d, lat2d = np.meshgrid(lons, lats)
 
     gc_lat, gc_lon, r_km = geodetic_to_geocentric(lat2d.ravel(), lon2d.ravel(), h_gps_km)
+
+    from shgeomag.core.field import compute_fdi, compute_geo
 
     if output == "fdi":
         f, d, i = compute_fdi(model, gc_lat, gc_lon, r_km, year)

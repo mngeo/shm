@@ -46,7 +46,7 @@ def _accumulate_field(gc_lat_deg: np.ndarray, lon_deg: np.ndarray, r_km: np.ndar
 
             gh_term = g * c + h * s
             br += (n + 1.0) * common * pm * gh_term
-            bt += common * dpm * gh_term
+            bt -= common * dpm * gh_term
 
             if m > 0:
                 bp += np.where(
