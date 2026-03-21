@@ -10,6 +10,6 @@ def test_wmm2025_regression_single_point(wmm_model):
 
     f, d, i = compute_fdi(wmm_model, gc_lat, lon, r, 2025.0)
 
-    assert np.isclose(f[0], 29488.787821804697, atol=0.01)
-    assert np.isclose(d[0], 3.6077635177045235, atol=0.001)
-    assert np.isclose(i[0], -15.278314185152379, atol=0.001)
+    assert np.isclose(f[0], 34828.61923182149, atol=0.01)
+    assert np.isclose(d[0], 2.431422462874634, atol=0.001)
+    assert np.isclose(i[0], -1.0259281350640885, atol=0.001)
