@@ -122,14 +122,15 @@ def build_design_matrix(
     p, dp = _compute_schmidt_p_and_dp(theta, n_use)
 
     ar = a_ref / r
-    pow_n = np.empty((n_use + 1, n_pts), dtype=float)
+    # Align radial power with `compute_sph` implementation.
+    pow_n = np.empty((n_use + 3, n_pts), dtype=float)
     pow_n[0] = 1.0
-    for n in range(1, n_use + 1):
+    for n in range(1, n_use + 3):
         pow_n[n] = pow_n[n - 1] * ar
 
     col = 0
     for n in range(1, n_use + 1):
-        common = pow_n[n + 1] if n + 1 <= n_use else pow_n[n] * ar
+        common = pow_n[n + 2]
         common_br = (n + 1.0) * common
         for m in range(0, n + 1):
             pm = p[n, m]

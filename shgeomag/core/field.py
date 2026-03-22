@@ -12,6 +12,66 @@ from shgeomag.utils.coord_utils import geocentric_to_geodetic
 from shgeomag.utils.time_utils import mjd2000_to_decimal_year
 
 
+def _build_component_basis(
+    gc_lat_deg: np.ndarray,
+    lon_deg: np.ndarray,
+    r_km: np.ndarray,
+    n_max: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Build Br/Btheta/Bphi coefficient basis matrices for fixed geometry."""
+    gc_lat_rad = np.deg2rad(np.asarray(gc_lat_deg, dtype=float).ravel())
+    lon_rad = np.deg2rad(np.asarray(lon_deg, dtype=float).ravel())
+    r = np.asarray(r_km, dtype=float).ravel()
+    n_pts = r.size
+
+    theta = 0.5 * np.pi - gc_lat_rad
+    sin_theta = np.sin(theta)
+    phi = np.mod(lon_rad, 2.0 * np.pi)
+
+    p, dp = _compute_schmidt_p_and_dp(theta, n_max)
+    cos_mphi, sin_mphi = _compute_trig(phi, n_max)
+
+    ar = A_REF_KM / r
+    ar_pow = np.ones((n_max + 3, n_pts), dtype=float)
+    for n in range(1, n_max + 3):
+        ar_pow[n] = ar_pow[n - 1] * ar
+
+    n_coeff = n_max * (n_max + 2)
+    br_basis = np.empty((n_pts, n_coeff), dtype=float)
+    bt_basis = np.empty((n_pts, n_coeff), dtype=float)
+    bp_basis = np.empty((n_pts, n_coeff), dtype=float)
+
+    inv_sin = np.zeros_like(sin_theta)
+    mask = np.abs(sin_theta) >= 1e-10
+    inv_sin[mask] = 1.0 / sin_theta[mask]
+
+    col = 0
+    for n in range(1, n_max + 1):
+        common = ar_pow[n + 2]
+        common_br = (n + 1.0) * common
+        for m in range(0, n + 1):
+            pm = p[n, m]
+            dpm = dp[n, m]
+            c = cos_mphi[m]
+            s = sin_mphi[m]
+
+            br_basis[:, col] = common_br * pm * c
+            bt_basis[:, col] = -common * dpm * c
+            if m == 0:
+                bp_basis[:, col] = 0.0
+            else:
+                bp_basis[:, col] = common * m * pm * s * inv_sin
+            col += 1
+
+            if m > 0:
+                br_basis[:, col] = common_br * pm * s
+                bt_basis[:, col] = -common * dpm * s
+                bp_basis[:, col] = -common * m * pm * c * inv_sin
+                col += 1
+
+    return br_basis, bt_basis, bp_basis
+
+
 def _accumulate_field(gc_lat_deg: np.ndarray, lon_deg: np.ndarray, r_km: np.ndarray, coeffs) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     gc_lat_rad = np.deg2rad(np.asarray(gc_lat_deg, dtype=float).ravel())
     lon_rad = np.deg2rad(np.asarray(lon_deg, dtype=float).ravel())
@@ -84,6 +144,36 @@ def compute_sph(model, gc_lat_deg, lon_deg, r_km, year: float) -> tuple[np.ndarr
     return _accumulate_field(np.asarray(gc_lat_deg), np.asarray(lon_deg), np.asarray(r_km), coeffs)
 
 
+def compute_sph_cached(model, gc_lat_deg, lon_deg, r_km, year: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Compute spherical components using unique-geometry basis caching.
+
+    This path is beneficial when many rows share identical ``(gc_lat, lon, r)``
+    coordinates (for example observatory station mappings).
+    """
+    lat = np.asarray(gc_lat_deg, dtype=float).ravel()
+    lon = np.asarray(lon_deg, dtype=float).ravel()
+    r = np.asarray(r_km, dtype=float).ravel()
+    if not (lat.size == lon.size == r.size):
+        raise ValueError("gc_lat_deg, lon_deg, and r_km must have the same length")
+
+    geom = np.column_stack([lat, lon, r])
+    unique_geom, inverse = np.unique(geom, axis=0, return_inverse=True)
+
+    coeffs = model.get_coefficients(float(year))
+    cvec = coeffs.coefficient_vector()
+    br_basis, bt_basis, bp_basis = _build_component_basis(
+        unique_geom[:, 0],
+        unique_geom[:, 1],
+        unique_geom[:, 2],
+        coeffs.n_max,
+    )
+
+    br_unique = br_basis @ cvec
+    bt_unique = bt_basis @ cvec
+    bp_unique = bp_basis @ cvec
+    return br_unique[inverse], bt_unique[inverse], bp_unique[inverse]
+
+
 def compute_geo(model, gc_lat_deg, lon_deg, r_km, year: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute geodetic NED components ``(X, Y, Z)`` in nT."""
     br, bt, bp = compute_sph(model, gc_lat_deg, lon_deg, r_km, year)
@@ -148,7 +238,9 @@ def compute_multi_epoch(model, data: InputData) -> dict[str, np.ndarray]:
             stop += 1
 
         idx = order[start:stop]
-        x, y, z = compute_geo(model, arr[idx, 1], arr[idx, 2], arr[idx, 3], year)
+        br, bt, bp = compute_sph_cached(model, arr[idx, 1], arr[idx, 2], arr[idx, 3], year)
+        gd_lat, _, _ = geocentric_to_geodetic(arr[idx, 1], arr[idx, 2], arr[idx, 3])
+        x, y, z = rotate_sph_to_geodetic_ned(br, bt, bp, arr[idx, 1], gd_lat)
         xyz_out[idx, 0] = x
         xyz_out[idx, 1] = y
         xyz_out[idx, 2] = z
@@ -170,4 +262,4 @@ def compute_multi_epoch(model, data: InputData) -> dict[str, np.ndarray]:
     }
 
 
-__all__ = ["compute_sph", "compute_geo", "compute_fdi", "compute_multi_epoch"]
+__all__ = ["compute_sph", "compute_sph_cached", "compute_geo", "compute_fdi", "compute_multi_epoch"]

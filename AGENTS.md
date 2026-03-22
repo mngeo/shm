@@ -52,6 +52,9 @@ operations and a matrix-form design-matrix approach.
 - Pre-compute (a/r)^{n+2} using np.cumprod to avoid repeated pow calls.
 - Pre-compute cos(mφ), sin(mφ) via iterative complex multiplication,
   not np.cos(m * phi) in a loop.
+- For datasets with repeated station geometry, cache by unique
+  `(gc_lat, lon, r)` and reuse harmonic basis matrices
+  (see `compute_sph_cached` path) instead of recomputing per row.
 
 ## File format rules for io/reader.py
 - Format detection must not use file extension — use content inspection.
