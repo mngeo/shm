@@ -25,6 +25,7 @@ import numpy as np
 from shgeomag.io.reader import load_model
 from shgeomag.core.design_matrix import build_ned_jacobian
 from shgeomag.core.field import compute_fdi, compute_sph_cached
+from shgeomag.inversion import invert_gauss_coefficients_cg
 from shgeomag.utils import global_grid
 
 model = load_model("models/WMM2025.COF")
@@ -62,6 +63,29 @@ j_ned = build_ned_jacobian(
 print(j_ned.shape)  # (3*N, n_coeff)
 ```
 
+## Inversion (CG)
+```python
+import numpy as np
+from shgeomag.inversion import invert_gauss_coefficients_cg
+
+# data columns: [MJD2000, gc_lat_deg, lon_deg, r_km, X_nT, Y_nT, Z_nT]
+data = np.array([
+    [-1000.0, 10.0, 20.0, 6371.2, 30000.0, 500.0, 1000.0],
+    [-1000.0, -5.0, 60.0, 6371.2, 28000.0, 300.0, -2000.0],
+], dtype=float)
+
+res = invert_gauss_coefficients_cg(
+    data,
+    n_max=8,
+    max_iter=200,
+    tol=1e-8,
+    damping=0.0,
+    use_cache=True,  # cache repeated geometry
+)
+print(res.converged, res.iterations, res.final_relative_residual)
+print(res.coefficient_vector.shape)  # (n_max*(n_max+2),)
+```
+
 ## Performance Notes
 - For one-off forward evaluation, prefer `compute_sph(...)`.
 - For repeated geometry workloads (many rows sharing the same
@@ -70,6 +94,8 @@ print(j_ned.shape)  # (3*N, n_coeff)
   internally per time slab.
 - `build_ned_jacobian(...)` supports the same repeated-geometry optimization
   via `use_cache=True` (default).
+- `invert_gauss_coefficients_cg(...)` uses a cached Jacobian operator for
+  `J @ v` and `J.T @ v` products when `use_cache=True`.
 
 ## Model Files
 - WMM example: `models/WMM2025.COF`

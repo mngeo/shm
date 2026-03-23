@@ -167,6 +167,13 @@
                 <ul id="pst-nav-more-links" class="dropdown-menu">
                     
 <li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="inversion.html">
+    Inversion API
+  </a>
+</li>
+
+
+<li class=" ">
   <a class="nav-link dropdown-item nav-internal" href="../tutorials/load_wmm.html">
     Load WMM
   </a>
@@ -190,6 +197,13 @@
 <li class=" ">
   <a class="nav-link dropdown-item nav-internal" href="../tutorials/time_series.html">
     Time Series
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../tutorials/invert_gauss_cg.html">
+    Invert Gauss Coefficients (CG)
   </a>
 </li>
 
@@ -305,6 +319,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="inversion.html">
+    Inversion API
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../tutorials/load_wmm.html">
     Load WMM
   </a>
@@ -328,6 +349,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../tutorials/time_series.html">
     Time Series
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../tutorials/invert_gauss_cg.html">
+    Invert Gauss Coefficients (CG)
   </a>
 </li>
 
@@ -414,9 +442,16 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="module-shgeomag.core.design_matrix">
-<span id="core-api"></span><h1>Core API<a class="headerlink" href="#module-shgeomag.core.design_matrix" title="Link to this heading">#</a></h1>
-<p>Design-matrix and spherical harmonic basis routines for geomagnetism.</p>
+  <section id="core-api">
+<h1>Core API<a class="headerlink" href="#core-api" title="Link to this heading">#</a></h1>
+<p>Design-matrix utilities include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">build_design_matrix</span></code> for spherical components <code class="docutils literal notranslate"><span class="pre">[Br,</span> <span class="pre">Btheta,</span> <span class="pre">Bphi]</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">build_ned_jacobian</span></code> for coefficient Jacobian
+<code class="docutils literal notranslate"><span class="pre">d[X,Y,Z]/d[g,h]</span></code> in the coefficient-vector order
+<code class="docutils literal notranslate"><span class="pre">[g10,</span> <span class="pre">g11,</span> <span class="pre">h11,</span> <span class="pre">g20,</span> <span class="pre">...]</span></code>.</p></li>
+</ul>
+<p id="module-shgeomag.core.design_matrix">Design-matrix and spherical harmonic basis routines for geomagnetism.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="shgeomag.core.design_matrix.build_design_matrix">
 <span class="sig-prename descclassname"><span class="pre">shgeomag.core.design_matrix.</span></span><span class="sig-name descname"><span class="pre">build_design_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gc_lat_rad</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon_rad</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_km</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_max</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_truncate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_ref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">6371.2</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="reference internal" href="../_modules/shgeomag/core/design_matrix.html#build_design_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#shgeomag.core.design_matrix.build_design_matrix" title="Link to this definition">#</a></dt>
@@ -442,6 +477,44 @@
 <p class="rubric">Notes</p>
 <p>Implements partial derivatives of spherical harmonic field components from
 V(r, theta, phi) = a * sum_n (a/r)^(n+1) * sum_m (g cos(m phi) + h sin(m phi)) P_n^m.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="shgeomag.core.design_matrix.build_ned_jacobian">
+<span class="sig-prename descclassname"><span class="pre">shgeomag.core.design_matrix.</span></span><span class="sig-name descname"><span class="pre">build_ned_jacobian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gc_lat_rad</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon_rad</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_km</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_max</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_truncate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_ref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">6371.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="reference internal" href="../_modules/shgeomag/core/design_matrix.html#build_ned_jacobian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#shgeomag.core.design_matrix.build_ned_jacobian" title="Link to this definition">#</a></dt>
+<dd><p>Build Jacobian <code class="docutils literal notranslate"><span class="pre">∂[X,</span> <span class="pre">Y,</span> <span class="pre">Z]/∂c</span></code> with respect to Gauss <code class="docutils literal notranslate"><span class="pre">g/h</span></code> coefficients.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gc_lat_rad</strong> (<em>ndarray</em>) – Geocentric latitude in radians.</p></li>
+<li><p><strong>lon_rad</strong> (<em>ndarray</em>) – Geocentric longitude in radians.</p></li>
+<li><p><strong>r_km</strong> (<em>ndarray</em>) – Geocentric radius in km.</p></li>
+<li><p><strong>n_max</strong> (<em>int</em>) – Model maximum degree.</p></li>
+<li><p><strong>n_truncate</strong> (<em>int</em><em>, </em><em>optional</em>) – Active truncation degree, default <code class="docutils literal notranslate"><span class="pre">n_max</span></code>.</p></li>
+<li><p><strong>a_ref</strong> (<em>float</em><em>, </em><em>default=6371.2</em>) – Reference radius in km.</p></li>
+<li><p><strong>use_cache</strong> (<em>bool</em><em>, </em><em>default=True</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, reuse Jacobian rows for repeated geometry tuples
+<code class="docutils literal notranslate"><span class="pre">(gc_lat,</span> <span class="pre">lon,</span> <span class="pre">r)</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Jacobian with shape <code class="docutils literal notranslate"><span class="pre">(3*N,</span> <span class="pre">n_truncate*(n_truncate+2))</span></code> where each
+column is the partial derivative of geodetic NED components with
+respect to one coefficient in
+<code class="docutils literal notranslate"><span class="pre">[g10,</span> <span class="pre">g11,</span> <span class="pre">h11,</span> <span class="pre">g20,</span> <span class="pre">g21,</span> <span class="pre">h21,</span> <span class="pre">g22,</span> <span class="pre">h22,</span> <span class="pre">...]</span></code> ordering.
+Rows are in point-major order
+<code class="docutils literal notranslate"><span class="pre">[X_0,</span> <span class="pre">Y_0,</span> <span class="pre">Z_0,</span> <span class="pre">X_1,</span> <span class="pre">Y_1,</span> <span class="pre">Z_1,</span> <span class="pre">...]</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ndarray</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This function returns coefficient Jacobians, not a 3x3 rotation matrix.
+For each coefficient <code class="docutils literal notranslate"><span class="pre">c_j</span></code>:
+<code class="docutils literal notranslate"><span class="pre">dX/dc_j</span> <span class="pre">=</span> <span class="pre">-cos(psi)</span> <span class="pre">*</span> <span class="pre">dBtheta/dc_j</span> <span class="pre">-</span> <span class="pre">sin(psi)</span> <span class="pre">*</span> <span class="pre">dBr/dc_j</span></code>,
+<code class="docutils literal notranslate"><span class="pre">dY/dc_j</span> <span class="pre">=</span> <span class="pre">dBphi/dc_j</span></code>,
+<code class="docutils literal notranslate"><span class="pre">dZ/dc_j</span> <span class="pre">=</span> <span class="pre">sin(psi)</span> <span class="pre">*</span> <span class="pre">dBtheta/dc_j</span> <span class="pre">-</span> <span class="pre">cos(psi)</span> <span class="pre">*</span> <span class="pre">dBr/dc_j</span></code>,
+where <code class="docutils literal notranslate"><span class="pre">psi</span> <span class="pre">=</span> <span class="pre">geodetic_lat</span> <span class="pre">-</span> <span class="pre">geocentric_lat</span></code>.</p>
 </dd></dl>
 
 <p id="module-shgeomag.core.field">Geomagnetic field evaluation routines for spherical and geodetic outputs.</p>
@@ -516,6 +589,14 @@ V(r, theta, phi) = a * sum_n (a/r)^(n+1) * sum_m (g cos(m phi) + h sin(m phi)) P
 <dd class="field-odd"><p>tuple of ndarray</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="shgeomag.core.field.compute_sph_cached">
+<span class="sig-prename descclassname"><span class="pre">shgeomag.core.field.</span></span><span class="sig-name descname"><span class="pre">compute_sph_cached</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gc_lat_deg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon_deg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_km</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">year</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/shgeomag/core/field.html#compute_sph_cached"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#shgeomag.core.field.compute_sph_cached" title="Link to this definition">#</a></dt>
+<dd><p>Compute spherical components using unique-geometry basis caching.</p>
+<p>This path is beneficial when many rows share identical <code class="docutils literal notranslate"><span class="pre">(gc_lat,</span> <span class="pre">lon,</span> <span class="pre">r)</span></code>
+coordinates (for example observatory station mappings).</p>
 </dd></dl>
 
 <p id="module-shgeomag.core.rotation">Rotation utilities between geocentric spherical and geodetic NED frames.</p>
@@ -599,10 +680,12 @@ Z = Btheta * sin(psi) - Br * cos(psi).</p>
   <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#shgeomag.core.design_matrix.build_design_matrix"><code class="docutils literal notranslate"><span class="pre">build_design_matrix()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#shgeomag.core.design_matrix.build_ned_jacobian"><code class="docutils literal notranslate"><span class="pre">build_ned_jacobian()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#shgeomag.core.field.compute_fdi"><code class="docutils literal notranslate"><span class="pre">compute_fdi()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#shgeomag.core.field.compute_geo"><code class="docutils literal notranslate"><span class="pre">compute_geo()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#shgeomag.core.field.compute_multi_epoch"><code class="docutils literal notranslate"><span class="pre">compute_multi_epoch()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#shgeomag.core.field.compute_sph"><code class="docutils literal notranslate"><span class="pre">compute_sph()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#shgeomag.core.field.compute_sph_cached"><code class="docutils literal notranslate"><span class="pre">compute_sph_cached()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#shgeomag.core.rotation.rotate_sph_to_geodetic_ned"><code class="docutils literal notranslate"><span class="pre">rotate_sph_to_geodetic_ned()</span></code></a></li>
 </ul>
   </nav></div>

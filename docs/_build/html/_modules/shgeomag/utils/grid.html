@@ -164,6 +164,13 @@
                 <ul id="pst-nav-more-links" class="dropdown-menu">
                     
 <li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api/inversion.html">
+    Inversion API
+  </a>
+</li>
+
+
+<li class=" ">
   <a class="nav-link dropdown-item nav-internal" href="../../../tutorials/load_wmm.html">
     Load WMM
   </a>
@@ -187,6 +194,13 @@
 <li class=" ">
   <a class="nav-link dropdown-item nav-internal" href="../../../tutorials/time_series.html">
     Time Series
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../tutorials/invert_gauss_cg.html">
+    Invert Gauss Coefficients (CG)
   </a>
 </li>
 
@@ -300,6 +314,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api/inversion.html">
+    Inversion API
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../tutorials/load_wmm.html">
     Load WMM
   </a>
@@ -323,6 +344,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../tutorials/time_series.html">
     Time Series
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorials/invert_gauss_cg.html">
+    Invert Gauss Coefficients (CG)
   </a>
 </li>
 
@@ -411,8 +439,6 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag.core.field</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_fdi</span><span class="p">,</span> <span class="n">compute_geo</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag.utils.coord_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">geodetic_to_geocentric</span>
 
 
@@ -457,6 +483,8 @@
     <span class="n">lon2d</span><span class="p">,</span> <span class="n">lat2d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">lons</span><span class="p">,</span> <span class="n">lats</span><span class="p">)</span>
 
     <span class="n">gc_lat</span><span class="p">,</span> <span class="n">gc_lon</span><span class="p">,</span> <span class="n">r_km</span> <span class="o">=</span> <span class="n">geodetic_to_geocentric</span><span class="p">(</span><span class="n">lat2d</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">lon2d</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">h_gps_km</span><span class="p">)</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag.core.field</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_fdi</span><span class="p">,</span> <span class="n">compute_geo</span>
 
     <span class="k">if</span> <span class="n">output</span> <span class="o">==</span> <span class="s2">&quot;fdi&quot;</span><span class="p">:</span>
         <span class="n">f</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="n">compute_fdi</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">gc_lat</span><span class="p">,</span> <span class="n">gc_lon</span><span class="p">,</span> <span class="n">r_km</span><span class="p">,</span> <span class="n">year</span><span class="p">)</span>

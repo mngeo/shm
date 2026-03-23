@@ -9,7 +9,9 @@ shgeomag Documentation
    api/core
    api/data
    api/utils
+   api/inversion
    tutorials/load_wmm
    tutorials/load_igrf
    tutorials/compute_global_grid
    tutorials/time_series
+   tutorials/invert_gauss_cg

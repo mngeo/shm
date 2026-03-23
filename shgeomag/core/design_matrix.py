@@ -202,11 +202,11 @@ def build_ned_jacobian(
     Notes
     -----
     This function returns coefficient Jacobians, not a 3x3 rotation matrix.
-    For each coefficient $c_j$:
-    $\\partial X/\\partial c_j = -\\cos\\psi\\,\\partial B_\\theta/\\partial c_j - \\sin\\psi\\,\\partial B_r/\\partial c_j$,
-    $\\partial Y/\\partial c_j = \\partial B_\\phi/\\partial c_j$,
-    $\\partial Z/\\partial c_j = \\sin\\psi\\,\\partial B_\\theta/\\partial c_j - \\cos\\psi\\,\\partial B_r/\\partial c_j$,
-    where $\\psi = \\varphi_d - \\varphi_c$.
+    For each coefficient ``c_j``:
+    ``dX/dc_j = -cos(psi) * dBtheta/dc_j - sin(psi) * dBr/dc_j``,
+    ``dY/dc_j = dBphi/dc_j``,
+    ``dZ/dc_j = sin(psi) * dBtheta/dc_j - cos(psi) * dBr/dc_j``,
+    where ``psi = geodetic_lat - geocentric_lat``.
     """
     lat = np.asarray(gc_lat_rad, dtype=float).ravel()
     lon = np.asarray(lon_rad, dtype=float).ravel()

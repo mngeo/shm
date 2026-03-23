@@ -166,6 +166,13 @@
                 <ul id="pst-nav-more-links" class="dropdown-menu">
                     
 <li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="api/inversion.html">
+    Inversion API
+  </a>
+</li>
+
+
+<li class=" ">
   <a class="nav-link dropdown-item nav-internal" href="tutorials/load_wmm.html">
     Load WMM
   </a>
@@ -189,6 +196,13 @@
 <li class=" ">
   <a class="nav-link dropdown-item nav-internal" href="tutorials/time_series.html">
     Time Series
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="tutorials/invert_gauss_cg.html">
+    Invert Gauss Coefficients (CG)
   </a>
 </li>
 
@@ -306,6 +320,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="api/inversion.html">
+    Inversion API
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="tutorials/load_wmm.html">
     Load WMM
   </a>
@@ -329,6 +350,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="tutorials/time_series.html">
     Time Series
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorials/invert_gauss_cg.html">
+    Invert Gauss Coefficients (CG)
   </a>
 </li>
 
@@ -399,10 +427,12 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/core.html">Core API</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api/core.html#shgeomag.core.design_matrix.build_design_matrix"><code class="docutils literal notranslate"><span class="pre">build_design_matrix()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/core.html#shgeomag.core.design_matrix.build_ned_jacobian"><code class="docutils literal notranslate"><span class="pre">build_ned_jacobian()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/core.html#shgeomag.core.field.compute_fdi"><code class="docutils literal notranslate"><span class="pre">compute_fdi()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/core.html#shgeomag.core.field.compute_geo"><code class="docutils literal notranslate"><span class="pre">compute_geo()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/core.html#shgeomag.core.field.compute_multi_epoch"><code class="docutils literal notranslate"><span class="pre">compute_multi_epoch()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/core.html#shgeomag.core.field.compute_sph"><code class="docutils literal notranslate"><span class="pre">compute_sph()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/core.html#shgeomag.core.field.compute_sph_cached"><code class="docutils literal notranslate"><span class="pre">compute_sph_cached()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/core.html#shgeomag.core.rotation.rotate_sph_to_geodetic_ned"><code class="docutils literal notranslate"><span class="pre">rotate_sph_to_geodetic_ned()</span></code></a></li>
 </ul>
 </li>
@@ -425,10 +455,20 @@
 <li class="toctree-l2"><a class="reference internal" href="api/utils.html#shgeomag.utils.grid.global_grid"><code class="docutils literal notranslate"><span class="pre">global_grid()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="api/inversion.html">Inversion API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/inversion.html#shgeomag.inversion.cg.CGInversionResult"><code class="docutils literal notranslate"><span class="pre">CGInversionResult</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/inversion.html#shgeomag.inversion.cg.forward_ned_from_coefficients"><code class="docutils literal notranslate"><span class="pre">forward_ned_from_coefficients()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/inversion.html#shgeomag.inversion.cg.invert_gauss_coefficients_cg"><code class="docutils literal notranslate"><span class="pre">invert_gauss_coefficients_cg()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/load_wmm.html">Load WMM</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/load_igrf.html">Load IGRF</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/compute_global_grid.html">Compute Global Grid</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/time_series.html">Time Series</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/invert_gauss_cg.html">Invert Gauss Coefficients (CG)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/invert_gauss_cg.html#notes">Notes</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </section>

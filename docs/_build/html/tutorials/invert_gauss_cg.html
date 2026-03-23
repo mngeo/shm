@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Load IGRF &#8212; shgeomag  documentation</title>
+    <title>Invert Gauss Coefficients (CG) &#8212; shgeomag  documentation</title>
   
   
   
@@ -41,11 +41,10 @@
     <script src="../_static/documentation_options.js?v=5929fcd5"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = 'tutorials/load_igrf';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'tutorials/invert_gauss_cg';</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Compute Global Grid" href="compute_global_grid.html" />
-    <link rel="prev" title="Load WMM" href="load_wmm.html" />
+    <link rel="prev" title="Time Series" href="time_series.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="" />
@@ -180,8 +179,8 @@
 </li>
 
 
-<li class=" current active">
-  <a class="nav-link dropdown-item nav-internal" href="#">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="load_igrf.html">
     Load IGRF
   </a>
 </li>
@@ -201,8 +200,8 @@
 </li>
 
 
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="invert_gauss_cg.html">
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="#">
     Invert Gauss Coefficients (CG)
   </a>
 </li>
@@ -332,8 +331,8 @@
 </li>
 
 
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="#">
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="load_igrf.html">
     Load IGRF
   </a>
 </li>
@@ -353,8 +352,8 @@
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="invert_gauss_cg.html">
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
     Invert Gauss Coefficients (CG)
   </a>
 </li>
@@ -425,7 +424,7 @@
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Load IGRF</span></li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Invert Gauss Coefficients (CG)</span></li>
   </ul>
 </nav>
 </div>
@@ -442,23 +441,47 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="load-igrf">
-<h1>Load IGRF<a class="headerlink" href="#load-igrf" title="Link to this heading">#</a></h1>
+  <section id="invert-gauss-coefficients-cg">
+<h1>Invert Gauss Coefficients (CG)<a class="headerlink" href="#invert-gauss-coefficients-cg" title="Link to this heading">#</a></h1>
+<p>Use conjugate gradient to invert geodetic NED observations for Gauss
+coefficients.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag.io.reader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_model</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag.core.design_matrix</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_ned_jacobian</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="s2">&quot;models/igrf14coeffs.txt&quot;</span><span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag.inversion</span><span class="w"> </span><span class="kn">import</span> <span class="n">invert_gauss_coefficients_cg</span>
 
-<span class="c1"># Coefficient Jacobian: d[X,Y,Z]/d[g,h] at one geocentric point.</span>
-<span class="n">j</span> <span class="o">=</span> <span class="n">build_ned_jacobian</span><span class="p">(</span>
-    <span class="n">gc_lat_rad</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">10.0</span><span class="p">])),</span>
-    <span class="n">lon_rad</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">20.0</span><span class="p">])),</span>
-    <span class="n">r_km</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">6371.2</span><span class="p">]),</span>
-    <span class="n">n_max</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">n_max</span><span class="p">,</span>
+<span class="c1"># Observation matrix columns:</span>
+<span class="c1"># [MJD2000, gc_lat_deg, lon_deg, r_km, X_nT, Y_nT, Z_nT]</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">[</span><span class="o">-</span><span class="mf">1000.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">,</span> <span class="mf">6371.2</span><span class="p">,</span> <span class="mf">30000.0</span><span class="p">,</span> <span class="mf">500.0</span><span class="p">,</span> <span class="mf">1000.0</span><span class="p">],</span>
+        <span class="p">[</span><span class="o">-</span><span class="mf">1000.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">60.0</span><span class="p">,</span> <span class="mf">6371.2</span><span class="p">,</span> <span class="mf">28000.0</span><span class="p">,</span> <span class="mf">300.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">2000.0</span><span class="p">],</span>
+    <span class="p">],</span>
+    <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">j</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">invert_gauss_coefficients_cg</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+    <span class="n">n_max</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+    <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+    <span class="n">tol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
+    <span class="n">damping</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">use_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">converged</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">coefficient_vector</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">predicted_xyz</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 </pre></div>
 </div>
+<section id="notes">
+<h2>Notes<a class="headerlink" href="#notes" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>The inversion solves <code class="docutils literal notranslate"><span class="pre">(J^T</span> <span class="pre">J</span> <span class="pre">+</span> <span class="pre">lambda</span> <span class="pre">I)</span> <span class="pre">c</span> <span class="pre">=</span> <span class="pre">J^T</span> <span class="pre">d</span></code> with CG.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">J</span></code> is <code class="docutils literal notranslate"><span class="pre">d[X,Y,Z]/d[g,h]</span></code> in coefficient-vector ordering
+<code class="docutils literal notranslate"><span class="pre">[g10,</span> <span class="pre">g11,</span> <span class="pre">h11,</span> <span class="pre">g20,</span> <span class="pre">...]</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">use_cache=True</span></code> reuses Jacobian blocks for repeated
+<code class="docutils literal notranslate"><span class="pre">(gc_lat,</span> <span class="pre">lon,</span> <span class="pre">r)</span></code> geometry.</p></li>
+</ul>
+</section>
 </section>
 
 
@@ -472,22 +495,13 @@
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="load_wmm.html"
+       href="time_series.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Load WMM</p>
+        <p class="prev-next-title">Time Series</p>
       </div>
-    </a>
-    <a class="right-next"
-       href="compute_global_grid.html"
-       title="next page">
-      <div class="prev-next-info">
-        <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Compute Global Grid</p>
-      </div>
-      <i class="fa-solid fa-angle-right"></i>
     </a>
 </div>
                 </footer>
@@ -501,10 +515,22 @@
 
 
   <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#notes">Notes</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="../_sources/tutorials/load_igrf.rst.txt"
+      <li><a href="../_sources/tutorials/invert_gauss_cg.rst.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div></div>

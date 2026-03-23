@@ -164,6 +164,13 @@
                 <ul id="pst-nav-more-links" class="dropdown-menu">
                     
 <li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api/inversion.html">
+    Inversion API
+  </a>
+</li>
+
+
+<li class=" ">
   <a class="nav-link dropdown-item nav-internal" href="../../../tutorials/load_wmm.html">
     Load WMM
   </a>
@@ -187,6 +194,13 @@
 <li class=" ">
   <a class="nav-link dropdown-item nav-internal" href="../../../tutorials/time_series.html">
     Time Series
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../tutorials/invert_gauss_cg.html">
+    Invert Gauss Coefficients (CG)
   </a>
 </li>
 
@@ -300,6 +314,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api/inversion.html">
+    Inversion API
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../tutorials/load_wmm.html">
     Load WMM
   </a>
@@ -323,6 +344,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../tutorials/time_series.html">
     Time Series
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorials/invert_gauss_cg.html">
+    Invert Gauss Coefficients (CG)
   </a>
 </li>
 
@@ -418,6 +446,66 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag.utils.time_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">mjd2000_to_decimal_year</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_component_basis</span><span class="p">(</span>
+    <span class="n">gc_lat_deg</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">lon_deg</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">r_km</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">n_max</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build Br/Btheta/Bphi coefficient basis matrices for fixed geometry.&quot;&quot;&quot;</span>
+    <span class="n">gc_lat_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">gc_lat_deg</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span>
+    <span class="n">lon_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lon_deg</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">r_km</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">n_pts</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">size</span>
+
+    <span class="n">theta</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">-</span> <span class="n">gc_lat_rad</span>
+    <span class="n">sin_theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">lon_rad</span><span class="p">,</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="p">,</span> <span class="n">dp</span> <span class="o">=</span> <span class="n">_compute_schmidt_p_and_dp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">n_max</span><span class="p">)</span>
+    <span class="n">cos_mphi</span><span class="p">,</span> <span class="n">sin_mphi</span> <span class="o">=</span> <span class="n">_compute_trig</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">n_max</span><span class="p">)</span>
+
+    <span class="n">ar</span> <span class="o">=</span> <span class="n">A_REF_KM</span> <span class="o">/</span> <span class="n">r</span>
+    <span class="n">ar_pow</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n_max</span> <span class="o">+</span> <span class="mi">3</span><span class="p">,</span> <span class="n">n_pts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_max</span> <span class="o">+</span> <span class="mi">3</span><span class="p">):</span>
+        <span class="n">ar_pow</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">ar_pow</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">ar</span>
+
+    <span class="n">n_coeff</span> <span class="o">=</span> <span class="n">n_max</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_max</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">br_basis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">n_pts</span><span class="p">,</span> <span class="n">n_coeff</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">bt_basis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">n_pts</span><span class="p">,</span> <span class="n">n_coeff</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">bp_basis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">n_pts</span><span class="p">,</span> <span class="n">n_coeff</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="n">inv_sin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">sin_theta</span><span class="p">)</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">sin_theta</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mf">1e-10</span>
+    <span class="n">inv_sin</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">sin_theta</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+
+    <span class="n">col</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">common</span> <span class="o">=</span> <span class="n">ar_pow</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="n">common_br</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">common</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">pm</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span>
+            <span class="n">dpm</span> <span class="o">=</span> <span class="n">dp</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">cos_mphi</span><span class="p">[</span><span class="n">m</span><span class="p">]</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">sin_mphi</span><span class="p">[</span><span class="n">m</span><span class="p">]</span>
+
+            <span class="n">br_basis</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">common_br</span> <span class="o">*</span> <span class="n">pm</span> <span class="o">*</span> <span class="n">c</span>
+            <span class="n">bt_basis</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">common</span> <span class="o">*</span> <span class="n">dpm</span> <span class="o">*</span> <span class="n">c</span>
+            <span class="k">if</span> <span class="n">m</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">bp_basis</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">bp_basis</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">common</span> <span class="o">*</span> <span class="n">m</span> <span class="o">*</span> <span class="n">pm</span> <span class="o">*</span> <span class="n">s</span> <span class="o">*</span> <span class="n">inv_sin</span>
+            <span class="n">col</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="k">if</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">br_basis</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">common_br</span> <span class="o">*</span> <span class="n">pm</span> <span class="o">*</span> <span class="n">s</span>
+                <span class="n">bt_basis</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">common</span> <span class="o">*</span> <span class="n">dpm</span> <span class="o">*</span> <span class="n">s</span>
+                <span class="n">bp_basis</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">common</span> <span class="o">*</span> <span class="n">m</span> <span class="o">*</span> <span class="n">pm</span> <span class="o">*</span> <span class="n">c</span> <span class="o">*</span> <span class="n">inv_sin</span>
+                <span class="n">col</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">br_basis</span><span class="p">,</span> <span class="n">bt_basis</span><span class="p">,</span> <span class="n">bp_basis</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_accumulate_field</span><span class="p">(</span><span class="n">gc_lat_deg</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">lon_deg</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">r_km</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
     <span class="n">gc_lat_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">gc_lat_deg</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span>
     <span class="n">lon_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lon_deg</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span>
@@ -432,8 +520,8 @@
     <span class="n">cos_mphi</span><span class="p">,</span> <span class="n">sin_mphi</span> <span class="o">=</span> <span class="n">_compute_trig</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">n_max</span><span class="p">)</span>
 
     <span class="n">ar</span> <span class="o">=</span> <span class="n">A_REF_KM</span> <span class="o">/</span> <span class="n">r</span>
-    <span class="n">ar_pow</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">coeffs</span><span class="o">.</span><span class="n">n_max</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="n">n_pts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">n_max</span> <span class="o">+</span> <span class="mi">2</span><span class="p">):</span>
+    <span class="n">ar_pow</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">coeffs</span><span class="o">.</span><span class="n">n_max</span> <span class="o">+</span> <span class="mi">3</span><span class="p">,</span> <span class="n">n_pts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">n_max</span> <span class="o">+</span> <span class="mi">3</span><span class="p">):</span>
         <span class="n">ar_pow</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">ar_pow</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">ar</span>
 
     <span class="n">gh</span> <span class="o">=</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">to_gh_dict</span><span class="p">()</span>
@@ -442,7 +530,7 @@
     <span class="n">bp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_pts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">n_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="n">common</span> <span class="o">=</span> <span class="n">ar_pow</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">common</span> <span class="o">=</span> <span class="n">ar_pow</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
             <span class="n">g</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">gh</span><span class="p">[(</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">)]</span>
             <span class="n">c</span> <span class="o">=</span> <span class="n">cos_mphi</span><span class="p">[</span><span class="n">m</span><span class="p">]</span>
@@ -452,7 +540,7 @@
 
             <span class="n">gh_term</span> <span class="o">=</span> <span class="n">g</span> <span class="o">*</span> <span class="n">c</span> <span class="o">+</span> <span class="n">h</span> <span class="o">*</span> <span class="n">s</span>
             <span class="n">br</span> <span class="o">+=</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">common</span> <span class="o">*</span> <span class="n">pm</span> <span class="o">*</span> <span class="n">gh_term</span>
-            <span class="n">bt</span> <span class="o">+=</span> <span class="n">common</span> <span class="o">*</span> <span class="n">dpm</span> <span class="o">*</span> <span class="n">gh_term</span>
+            <span class="n">bt</span> <span class="o">-=</span> <span class="n">common</span> <span class="o">*</span> <span class="n">dpm</span> <span class="o">*</span> <span class="n">gh_term</span>
 
             <span class="k">if</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">bp</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
@@ -490,6 +578,39 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">coeffs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_coefficients</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">year</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">_accumulate_field</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">gc_lat_deg</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lon_deg</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">r_km</span><span class="p">),</span> <span class="n">coeffs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="compute_sph_cached">
+<a class="viewcode-back" href="../../../api/core.html#shgeomag.core.field.compute_sph_cached">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_sph_cached</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">gc_lat_deg</span><span class="p">,</span> <span class="n">lon_deg</span><span class="p">,</span> <span class="n">r_km</span><span class="p">,</span> <span class="n">year</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute spherical components using unique-geometry basis caching.</span>
+
+<span class="sd">    This path is beneficial when many rows share identical ``(gc_lat, lon, r)``</span>
+<span class="sd">    coordinates (for example observatory station mappings).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">gc_lat_deg</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">lon</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lon_deg</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">r_km</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">lat</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">lon</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">r</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;gc_lat_deg, lon_deg, and r_km must have the same length&quot;</span><span class="p">)</span>
+
+    <span class="n">geom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">r</span><span class="p">])</span>
+    <span class="n">unique_geom</span><span class="p">,</span> <span class="n">inverse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">coeffs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_coefficients</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">year</span><span class="p">))</span>
+    <span class="n">cvec</span> <span class="o">=</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">coefficient_vector</span><span class="p">()</span>
+    <span class="n">br_basis</span><span class="p">,</span> <span class="n">bt_basis</span><span class="p">,</span> <span class="n">bp_basis</span> <span class="o">=</span> <span class="n">_build_component_basis</span><span class="p">(</span>
+        <span class="n">unique_geom</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="n">unique_geom</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="n">unique_geom</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="n">coeffs</span><span class="o">.</span><span class="n">n_max</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">br_unique</span> <span class="o">=</span> <span class="n">br_basis</span> <span class="o">@</span> <span class="n">cvec</span>
+    <span class="n">bt_unique</span> <span class="o">=</span> <span class="n">bt_basis</span> <span class="o">@</span> <span class="n">cvec</span>
+    <span class="n">bp_unique</span> <span class="o">=</span> <span class="n">bp_basis</span> <span class="o">@</span> <span class="n">cvec</span>
+    <span class="k">return</span> <span class="n">br_unique</span><span class="p">[</span><span class="n">inverse</span><span class="p">],</span> <span class="n">bt_unique</span><span class="p">[</span><span class="n">inverse</span><span class="p">],</span> <span class="n">bp_unique</span><span class="p">[</span><span class="n">inverse</span><span class="p">]</span></div>
 
 
 
@@ -565,7 +686,9 @@
             <span class="n">stop</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="n">idx</span> <span class="o">=</span> <span class="n">order</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">]</span>
-        <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">compute_geo</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">arr</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">year</span><span class="p">)</span>
+        <span class="n">br</span><span class="p">,</span> <span class="n">bt</span><span class="p">,</span> <span class="n">bp</span> <span class="o">=</span> <span class="n">compute_sph_cached</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">arr</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">year</span><span class="p">)</span>
+        <span class="n">gd_lat</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">geocentric_to_geodetic</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">rotate_sph_to_geodetic_ned</span><span class="p">(</span><span class="n">br</span><span class="p">,</span> <span class="n">bt</span><span class="p">,</span> <span class="n">bp</span><span class="p">,</span> <span class="n">arr</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">gd_lat</span><span class="p">)</span>
         <span class="n">xyz_out</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
         <span class="n">xyz_out</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">y</span>
         <span class="n">xyz_out</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">z</span>
@@ -588,7 +711,7 @@
 
 
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;compute_sph&quot;</span><span class="p">,</span> <span class="s2">&quot;compute_geo&quot;</span><span class="p">,</span> <span class="s2">&quot;compute_fdi&quot;</span><span class="p">,</span> <span class="s2">&quot;compute_multi_epoch&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;compute_sph&quot;</span><span class="p">,</span> <span class="s2">&quot;compute_sph_cached&quot;</span><span class="p">,</span> <span class="s2">&quot;compute_geo&quot;</span><span class="p">,</span> <span class="s2">&quot;compute_fdi&quot;</span><span class="p">,</span> <span class="s2">&quot;compute_multi_epoch&quot;</span><span class="p">]</span>
 </pre></div>
 
                 </article>

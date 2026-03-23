@@ -164,6 +164,13 @@
                 <ul id="pst-nav-more-links" class="dropdown-menu">
                     
 <li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api/inversion.html">
+    Inversion API
+  </a>
+</li>
+
+
+<li class=" ">
   <a class="nav-link dropdown-item nav-internal" href="../../../tutorials/load_wmm.html">
     Load WMM
   </a>
@@ -187,6 +194,13 @@
 <li class=" ">
   <a class="nav-link dropdown-item nav-internal" href="../../../tutorials/time_series.html">
     Time Series
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../tutorials/invert_gauss_cg.html">
+    Invert Gauss Coefficients (CG)
   </a>
 </li>
 
@@ -300,6 +314,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api/inversion.html">
+    Inversion API
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../tutorials/load_wmm.html">
     Load WMM
   </a>
@@ -323,6 +344,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../tutorials/time_series.html">
     Time Series
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorials/invert_gauss_cg.html">
+    Invert Gauss Coefficients (CG)
   </a>
 </li>
 
@@ -411,6 +439,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag._constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">A_REF_KM</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag.utils.coord_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">geocentric_to_geodetic</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_angles</span><span class="p">(</span><span class="n">gc_lat_rad</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">lon_rad</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
@@ -442,38 +471,36 @@
     <span class="n">sin_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
     <span class="n">n_pts</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">size</span>
 
-    <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_max</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="n">n_pts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_pts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">dp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_pts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
     <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
 
-    <span class="k">if</span> <span class="n">n_max</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">cos_t</span>
-        <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">sin_t</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
 
-    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="n">m</span> <span class="o">=</span> <span class="n">n</span>
-        <span class="n">p</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">sin_t</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">n</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">n</span><span class="p">))</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">m</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
-
-        <span class="n">m</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span>
-        <span class="n">p</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">cos_t</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">n</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span>
-
-        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="mf">4.0</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="n">n</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="n">n</span> <span class="o">-</span> <span class="n">m</span> <span class="o">*</span> <span class="n">m</span><span class="p">))</span>
-            <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
-                <span class="p">((</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">n</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">m</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">m</span><span class="p">))</span>
-                <span class="o">/</span> <span class="p">((</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">n</span> <span class="o">-</span> <span class="mf">3.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="n">n</span> <span class="o">-</span> <span class="n">m</span> <span class="o">*</span> <span class="n">m</span><span class="p">))</span>
-            <span class="p">)</span>
-            <span class="n">p</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">cos_t</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">-</span> <span class="n">b</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span>
-
-    <span class="n">dp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_pts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
-            <span class="n">term_up</span> <span class="o">=</span> <span class="mf">0.0</span>
-            <span class="k">if</span> <span class="n">m</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">n</span><span class="p">:</span>
-                <span class="n">term_up</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">n</span> <span class="o">-</span> <span class="n">m</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="n">m</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">))</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
-            <span class="n">term_dn</span> <span class="o">=</span> <span class="mf">0.0</span>
-            <span class="k">if</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">term_dn</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">n</span> <span class="o">+</span> <span class="n">m</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">m</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">))</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
-            <span class="n">dp</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">term_up</span> <span class="o">-</span> <span class="n">term_dn</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="n">m</span><span class="p">:</span>
+                <span class="n">p</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">sin_t</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="n">dp</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">sin_t</span> <span class="o">*</span> <span class="n">dp</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">cos_t</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">p</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">cos_t</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span>
+                    <span class="n">dp</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">cos_t</span> <span class="o">*</span> <span class="n">dp</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">-</span> <span class="n">sin_t</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">knm</span> <span class="o">=</span> <span class="p">((</span><span class="n">n</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">m</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">((</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">n</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">n</span> <span class="o">-</span> <span class="mf">3.0</span><span class="p">))</span>
+                    <span class="n">p</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">cos_t</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">-</span> <span class="n">knm</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span>
+                    <span class="n">dp</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">cos_t</span> <span class="o">*</span> <span class="n">dp</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">-</span> <span class="n">sin_t</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">-</span> <span class="n">knm</span> <span class="o">*</span> <span class="n">dp</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">m</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">s</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">n</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">s</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">n</span> <span class="o">-</span> <span class="n">m</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">2.0</span> <span class="k">if</span> <span class="n">m</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="n">m</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">p</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">*=</span> <span class="n">s</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span>
+            <span class="n">dp</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">*=</span> <span class="n">s</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span>
 
     <span class="k">return</span> <span class="n">p</span><span class="p">,</span> <span class="n">dp</span>
 
@@ -532,14 +559,15 @@
     <span class="n">p</span><span class="p">,</span> <span class="n">dp</span> <span class="o">=</span> <span class="n">_compute_schmidt_p_and_dp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">n_use</span><span class="p">)</span>
 
     <span class="n">ar</span> <span class="o">=</span> <span class="n">a_ref</span> <span class="o">/</span> <span class="n">r</span>
-    <span class="n">pow_n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">n_use</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_pts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="c1"># Align radial power with `compute_sph` implementation.</span>
+    <span class="n">pow_n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">n_use</span> <span class="o">+</span> <span class="mi">3</span><span class="p">,</span> <span class="n">n_pts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
     <span class="n">pow_n</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
-    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_use</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_use</span> <span class="o">+</span> <span class="mi">3</span><span class="p">):</span>
         <span class="n">pow_n</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">pow_n</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">ar</span>
 
     <span class="n">col</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_use</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="n">common</span> <span class="o">=</span> <span class="n">pow_n</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">n_use</span> <span class="k">else</span> <span class="n">pow_n</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">*</span> <span class="n">ar</span>
+        <span class="n">common</span> <span class="o">=</span> <span class="n">pow_n</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span>
         <span class="n">common_br</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">common</span>
         <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
             <span class="n">pm</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span>
@@ -548,7 +576,7 @@
             <span class="n">s</span> <span class="o">=</span> <span class="n">sin_mphi</span><span class="p">[</span><span class="n">m</span><span class="p">]</span>
 
             <span class="n">br_g</span> <span class="o">=</span> <span class="n">common_br</span> <span class="o">*</span> <span class="n">pm</span> <span class="o">*</span> <span class="n">c</span>
-            <span class="n">bt_g</span> <span class="o">=</span> <span class="n">common</span> <span class="o">*</span> <span class="n">dpm</span> <span class="o">*</span> <span class="n">c</span>
+            <span class="n">bt_g</span> <span class="o">=</span> <span class="o">-</span><span class="n">common</span> <span class="o">*</span> <span class="n">dpm</span> <span class="o">*</span> <span class="n">c</span>
             <span class="n">bp_g</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">sin_theta</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-10</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">common</span> <span class="o">*</span> <span class="n">m</span> <span class="o">*</span> <span class="n">pm</span> <span class="o">*</span> <span class="n">s</span> <span class="o">/</span> <span class="n">sin_theta</span><span class="p">)</span>
 
             <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">::</span><span class="mi">3</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">br_g</span>
@@ -558,7 +586,7 @@
 
             <span class="k">if</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">br_h</span> <span class="o">=</span> <span class="n">common_br</span> <span class="o">*</span> <span class="n">pm</span> <span class="o">*</span> <span class="n">s</span>
-                <span class="n">bt_h</span> <span class="o">=</span> <span class="n">common</span> <span class="o">*</span> <span class="n">dpm</span> <span class="o">*</span> <span class="n">s</span>
+                <span class="n">bt_h</span> <span class="o">=</span> <span class="o">-</span><span class="n">common</span> <span class="o">*</span> <span class="n">dpm</span> <span class="o">*</span> <span class="n">s</span>
                 <span class="n">bp_h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">sin_theta</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-10</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="n">common</span> <span class="o">*</span> <span class="n">m</span> <span class="o">*</span> <span class="n">pm</span> <span class="o">*</span> <span class="n">c</span> <span class="o">/</span> <span class="n">sin_theta</span><span class="p">)</span>
                 <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">::</span><span class="mi">3</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">br_h</span>
                 <span class="n">g</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">3</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">bt_h</span>
@@ -569,7 +597,113 @@
 
 
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;build_design_matrix&quot;</span><span class="p">,</span> <span class="s2">&quot;_compute_schmidt_p_and_dp&quot;</span><span class="p">,</span> <span class="s2">&quot;_compute_trig&quot;</span><span class="p">]</span>
+<div class="viewcode-block" id="build_ned_jacobian">
+<a class="viewcode-back" href="../../../api/core.html#shgeomag.core.design_matrix.build_ned_jacobian">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_ned_jacobian</span><span class="p">(</span>
+    <span class="n">gc_lat_rad</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">lon_rad</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">r_km</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">n_max</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">n_truncate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">a_ref</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">A_REF_KM</span><span class="p">,</span>
+    <span class="n">use_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build Jacobian ``∂[X, Y, Z]/∂c`` with respect to Gauss ``g/h`` coefficients.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gc_lat_rad : ndarray</span>
+<span class="sd">        Geocentric latitude in radians.</span>
+<span class="sd">    lon_rad : ndarray</span>
+<span class="sd">        Geocentric longitude in radians.</span>
+<span class="sd">    r_km : ndarray</span>
+<span class="sd">        Geocentric radius in km.</span>
+<span class="sd">    n_max : int</span>
+<span class="sd">        Model maximum degree.</span>
+<span class="sd">    n_truncate : int, optional</span>
+<span class="sd">        Active truncation degree, default ``n_max``.</span>
+<span class="sd">    a_ref : float, default=6371.2</span>
+<span class="sd">        Reference radius in km.</span>
+<span class="sd">    use_cache : bool, default=True</span>
+<span class="sd">        If ``True``, reuse Jacobian rows for repeated geometry tuples</span>
+<span class="sd">        ``(gc_lat, lon, r)``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ndarray</span>
+<span class="sd">        Jacobian with shape ``(3*N, n_truncate*(n_truncate+2))`` where each</span>
+<span class="sd">        column is the partial derivative of geodetic NED components with</span>
+<span class="sd">        respect to one coefficient in</span>
+<span class="sd">        ``[g10, g11, h11, g20, g21, h21, g22, h22, ...]`` ordering.</span>
+<span class="sd">        Rows are in point-major order</span>
+<span class="sd">        ``[X_0, Y_0, Z_0, X_1, Y_1, Z_1, ...]``.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This function returns coefficient Jacobians, not a 3x3 rotation matrix.</span>
+<span class="sd">    For each coefficient ``c_j``:</span>
+<span class="sd">    ``dX/dc_j = -cos(psi) * dBtheta/dc_j - sin(psi) * dBr/dc_j``,</span>
+<span class="sd">    ``dY/dc_j = dBphi/dc_j``,</span>
+<span class="sd">    ``dZ/dc_j = sin(psi) * dBtheta/dc_j - cos(psi) * dBr/dc_j``,</span>
+<span class="sd">    where ``psi = geodetic_lat - geocentric_lat``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">gc_lat_rad</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">lon</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lon_rad</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">r_km</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">lat</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">lon</span><span class="o">.</span><span class="n">size</span> <span class="ow">or</span> <span class="n">lat</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">r</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;gc_lat_rad, lon_rad, r_km must have same length&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">use_cache</span><span class="p">:</span>
+        <span class="n">geom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">r</span><span class="p">])</span>
+        <span class="n">unique_geom</span><span class="p">,</span> <span class="n">inverse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">g_sph_unique</span> <span class="o">=</span> <span class="n">build_design_matrix</span><span class="p">(</span>
+            <span class="n">unique_geom</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="n">unique_geom</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="n">unique_geom</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span>
+            <span class="n">n_max</span><span class="o">=</span><span class="n">n_max</span><span class="p">,</span>
+            <span class="n">n_truncate</span><span class="o">=</span><span class="n">n_truncate</span><span class="p">,</span>
+            <span class="n">a_ref</span><span class="o">=</span><span class="n">a_ref</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">gc_lat_deg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">unique_geom</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+        <span class="n">lon_deg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">unique_geom</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="n">gd_lat_deg</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">geocentric_to_geodetic</span><span class="p">(</span><span class="n">gc_lat_deg</span><span class="p">,</span> <span class="n">lon_deg</span><span class="p">,</span> <span class="n">unique_geom</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="n">psi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">gd_lat_deg</span> <span class="o">-</span> <span class="n">gc_lat_deg</span><span class="p">)</span>
+
+        <span class="n">br</span> <span class="o">=</span> <span class="n">g_sph_unique</span><span class="p">[</span><span class="mi">0</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">bt</span> <span class="o">=</span> <span class="n">g_sph_unique</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">bp</span> <span class="o">=</span> <span class="n">g_sph_unique</span><span class="p">[</span><span class="mi">2</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span>
+
+        <span class="n">g_ned_unique</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">g_sph_unique</span><span class="p">)</span>
+        <span class="n">g_ned_unique</span><span class="p">[</span><span class="mi">0</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">bt</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">psi</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">br</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">psi</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">g_ned_unique</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">bp</span>
+        <span class="n">g_ned_unique</span><span class="p">[</span><span class="mi">2</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">bt</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">psi</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">br</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">psi</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+
+        <span class="n">n_coeff</span> <span class="o">=</span> <span class="n">g_ned_unique</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">n_pts</span> <span class="o">=</span> <span class="n">lat</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">g_ned</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">3</span> <span class="o">*</span> <span class="n">n_pts</span><span class="p">,</span> <span class="n">n_coeff</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">g_ned</span><span class="p">[</span><span class="mi">0</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">g_ned_unique</span><span class="p">[</span><span class="mi">0</span><span class="p">::</span><span class="mi">3</span><span class="p">][</span><span class="n">inverse</span><span class="p">]</span>
+        <span class="n">g_ned</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">g_ned_unique</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">3</span><span class="p">][</span><span class="n">inverse</span><span class="p">]</span>
+        <span class="n">g_ned</span><span class="p">[</span><span class="mi">2</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">g_ned_unique</span><span class="p">[</span><span class="mi">2</span><span class="p">::</span><span class="mi">3</span><span class="p">][</span><span class="n">inverse</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">g_ned</span>
+
+    <span class="n">g_sph</span> <span class="o">=</span> <span class="n">build_design_matrix</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">n_max</span><span class="o">=</span><span class="n">n_max</span><span class="p">,</span> <span class="n">n_truncate</span><span class="o">=</span><span class="n">n_truncate</span><span class="p">,</span> <span class="n">a_ref</span><span class="o">=</span><span class="n">a_ref</span><span class="p">)</span>
+    <span class="n">gc_lat_deg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">lat</span><span class="p">)</span>
+    <span class="n">lon_deg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">lon</span><span class="p">)</span>
+    <span class="n">gd_lat_deg</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">geocentric_to_geodetic</span><span class="p">(</span><span class="n">gc_lat_deg</span><span class="p">,</span> <span class="n">lon_deg</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+    <span class="n">psi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">gd_lat_deg</span> <span class="o">-</span> <span class="n">gc_lat_deg</span><span class="p">)</span>
+
+    <span class="n">br</span> <span class="o">=</span> <span class="n">g_sph</span><span class="p">[</span><span class="mi">0</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">bt</span> <span class="o">=</span> <span class="n">g_sph</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">bp</span> <span class="o">=</span> <span class="n">g_sph</span><span class="p">[</span><span class="mi">2</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">g_ned</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">g_sph</span><span class="p">)</span>
+    <span class="n">g_ned</span><span class="p">[</span><span class="mi">0</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">bt</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">psi</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">br</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">psi</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="n">g_ned</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">bp</span>
+    <span class="n">g_ned</span><span class="p">[</span><span class="mi">2</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">bt</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">psi</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">br</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">psi</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">g_ned</span></div>
+
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;build_design_matrix&quot;</span><span class="p">,</span> <span class="s2">&quot;build_ned_jacobian&quot;</span><span class="p">,</span> <span class="s2">&quot;_compute_schmidt_p_and_dp&quot;</span><span class="p">,</span> <span class="s2">&quot;_compute_trig&quot;</span><span class="p">]</span>
 </pre></div>
 
                 </article>

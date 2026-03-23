@@ -164,6 +164,13 @@
                 <ul id="pst-nav-more-links" class="dropdown-menu">
                     
 <li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="api/inversion.html">
+    Inversion API
+  </a>
+</li>
+
+
+<li class=" ">
   <a class="nav-link dropdown-item nav-internal" href="tutorials/load_wmm.html">
     Load WMM
   </a>
@@ -187,6 +194,13 @@
 <li class=" ">
   <a class="nav-link dropdown-item nav-internal" href="tutorials/time_series.html">
     Time Series
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="tutorials/invert_gauss_cg.html">
+    Invert Gauss Coefficients (CG)
   </a>
 </li>
 
@@ -300,6 +314,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="api/inversion.html">
+    Inversion API
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="tutorials/load_wmm.html">
     Load WMM
   </a>
@@ -323,6 +344,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="tutorials/time_series.html">
     Time Series
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorials/invert_gauss_cg.html">
+    Invert Gauss Coefficients (CG)
   </a>
 </li>
 
@@ -402,11 +430,17 @@
       <li><a href="api/core.html#shgeomag.core.design_matrix.build_design_matrix">build_design_matrix() (in module shgeomag.core.design_matrix)</a>
 </li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/core.html#shgeomag.core.design_matrix.build_ned_jacobian">build_ned_jacobian() (in module shgeomag.core.design_matrix)</a>
+</li>
+  </ul></td>
 </tr></table>
 
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/inversion.html#shgeomag.inversion.cg.CGInversionResult">CGInversionResult (class in shgeomag.inversion.cg)</a>
+</li>
       <li><a href="api/model.html#shgeomag.model.coefficients.GaussCoefficients.coefficient_vector">coefficient_vector() (shgeomag.model.coefficients.GaussCoefficients method)</a>
 </li>
       <li><a href="api/core.html#shgeomag.core.field.compute_fdi">compute_fdi() (in module shgeomag.core.field)</a>
@@ -418,6 +452,8 @@
       <li><a href="api/core.html#shgeomag.core.field.compute_multi_epoch">compute_multi_epoch() (in module shgeomag.core.field)</a>
 </li>
       <li><a href="api/core.html#shgeomag.core.field.compute_sph">compute_sph() (in module shgeomag.core.field)</a>
+</li>
+      <li><a href="api/core.html#shgeomag.core.field.compute_sph_cached">compute_sph_cached() (in module shgeomag.core.field)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -437,10 +473,12 @@
 <h2 id="F">F</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/data.html#shgeomag.data.container.InputData.from_array">from_array() (shgeomag.data.container.InputData class method)</a>
+      <li><a href="api/inversion.html#shgeomag.inversion.cg.forward_ned_from_coefficients">forward_ned_from_coefficients() (in module shgeomag.inversion.cg)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/data.html#shgeomag.data.container.InputData.from_array">from_array() (shgeomag.data.container.InputData class method)</a>
+</li>
       <li><a href="api/data.html#shgeomag.data.container.InputData.from_dataframe">from_dataframe() (shgeomag.data.container.InputData class method)</a>
 </li>
   </ul></td>
@@ -473,11 +511,13 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/model.html#shgeomag.model.model.GeomagModel.info">info() (shgeomag.model.model.GeomagModel method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/data.html#shgeomag.data.container.InputData">InputData (class in shgeomag.data.container)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/model.html#shgeomag.model.interpolation.interpolate_coefficients">interpolate_coefficients() (in module shgeomag.model.interpolation)</a>
+</li>
+      <li><a href="api/inversion.html#shgeomag.inversion.cg.invert_gauss_coefficients_cg">invert_gauss_coefficients_cg() (in module shgeomag.inversion.cg)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -508,6 +548,8 @@
         <li><a href="api/core.html#module-shgeomag.core.rotation">shgeomag.core.rotation</a>
 </li>
         <li><a href="api/data.html#module-shgeomag.data.container">shgeomag.data.container</a>
+</li>
+        <li><a href="api/inversion.html#module-shgeomag.inversion.cg">shgeomag.inversion.cg</a>
 </li>
         <li><a href="api/io.html#module-shgeomag.io.reader">shgeomag.io.reader</a>
 </li>
@@ -579,12 +621,21 @@
 </li>
       </ul></li>
       <li>
+    shgeomag.inversion.cg
+
+      <ul>
+        <li><a href="api/inversion.html#module-shgeomag.inversion.cg">module</a>
+</li>
+      </ul></li>
+      <li>
     shgeomag.io.reader
 
       <ul>
         <li><a href="api/io.html#module-shgeomag.io.reader">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     shgeomag.io.writer
 
@@ -592,8 +643,6 @@
         <li><a href="api/io.html#module-shgeomag.io.writer">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     shgeomag.model.coefficients
 
