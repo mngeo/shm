@@ -23,6 +23,7 @@ cd docs && make doctest html
 ```python
 import numpy as np
 from shgeomag.io.reader import load_model
+from shgeomag.core.design_matrix import build_ned_jacobian
 from shgeomag.core.field import compute_fdi, compute_sph_cached
 from shgeomag.utils import global_grid
 
@@ -49,6 +50,16 @@ br, bt, bp = compute_sph_cached(
     year=2026.0,
 )
 print(br, bt, bp)
+
+# Jacobian of geodetic NED components wrt Gauss coefficients c
+# with c ordering [g10, g11, h11, g20, ...].
+j_ned = build_ned_jacobian(
+    gc_lat_rad=np.deg2rad(np.array([10.0, -20.0])),
+    lon_rad=np.deg2rad(np.array([30.0, 120.0])),
+    r_km=np.array([6371.2, 6400.0]),
+    n_max=model.n_max,
+)
+print(j_ned.shape)  # (3*N, n_coeff)
 ```
 
 ## Performance Notes
@@ -57,6 +68,8 @@ print(br, bt, bp)
   `gc_lat/lon/r`), use `compute_sph_cached(...)` for faster execution.
 - `compute_multi_epoch(...)` already uses the cached spherical path
   internally per time slab.
+- `build_ned_jacobian(...)` supports the same repeated-geometry optimization
+  via `use_cache=True` (default).
 
 ## Model Files
 - WMM example: `models/WMM2025.COF`

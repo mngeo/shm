@@ -1,6 +1,7 @@
 /venv/
 /data/
 /models/
+/output/
 *.pyc
 *.pyo
 __pycache__/

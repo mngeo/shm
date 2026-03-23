@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 
 from shgeomag._constants import A_REF_KM
+from shgeomag.utils.coord_utils import geocentric_to_geodetic
 
 
 def _prepare_angles(gc_lat_rad: np.ndarray, lon_rad: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -159,4 +160,107 @@ def build_design_matrix(
     return g
 
 
-__all__ = ["build_design_matrix", "_compute_schmidt_p_and_dp", "_compute_trig"]
+def build_ned_jacobian(
+    gc_lat_rad: np.ndarray,
+    lon_rad: np.ndarray,
+    r_km: np.ndarray,
+    n_max: int,
+    n_truncate: int | None = None,
+    a_ref: float = A_REF_KM,
+    use_cache: bool = True,
+) -> np.ndarray:
+    """Build Jacobian ``∂[X, Y, Z]/∂c`` with respect to Gauss ``g/h`` coefficients.
+
+    Parameters
+    ----------
+    gc_lat_rad : ndarray
+        Geocentric latitude in radians.
+    lon_rad : ndarray
+        Geocentric longitude in radians.
+    r_km : ndarray
+        Geocentric radius in km.
+    n_max : int
+        Model maximum degree.
+    n_truncate : int, optional
+        Active truncation degree, default ``n_max``.
+    a_ref : float, default=6371.2
+        Reference radius in km.
+    use_cache : bool, default=True
+        If ``True``, reuse Jacobian rows for repeated geometry tuples
+        ``(gc_lat, lon, r)``.
+
+    Returns
+    -------
+    ndarray
+        Jacobian with shape ``(3*N, n_truncate*(n_truncate+2))`` where each
+        column is the partial derivative of geodetic NED components with
+        respect to one coefficient in
+        ``[g10, g11, h11, g20, g21, h21, g22, h22, ...]`` ordering.
+        Rows are in point-major order
+        ``[X_0, Y_0, Z_0, X_1, Y_1, Z_1, ...]``.
+
+    Notes
+    -----
+    This function returns coefficient Jacobians, not a 3x3 rotation matrix.
+    For each coefficient $c_j$:
+    $\\partial X/\\partial c_j = -\\cos\\psi\\,\\partial B_\\theta/\\partial c_j - \\sin\\psi\\,\\partial B_r/\\partial c_j$,
+    $\\partial Y/\\partial c_j = \\partial B_\\phi/\\partial c_j$,
+    $\\partial Z/\\partial c_j = \\sin\\psi\\,\\partial B_\\theta/\\partial c_j - \\cos\\psi\\,\\partial B_r/\\partial c_j$,
+    where $\\psi = \\varphi_d - \\varphi_c$.
+    """
+    lat = np.asarray(gc_lat_rad, dtype=float).ravel()
+    lon = np.asarray(lon_rad, dtype=float).ravel()
+    r = np.asarray(r_km, dtype=float).ravel()
+    if lat.size != lon.size or lat.size != r.size:
+        raise ValueError("gc_lat_rad, lon_rad, r_km must have same length")
+
+    if use_cache:
+        geom = np.column_stack([lat, lon, r])
+        unique_geom, inverse = np.unique(geom, axis=0, return_inverse=True)
+        g_sph_unique = build_design_matrix(
+            unique_geom[:, 0],
+            unique_geom[:, 1],
+            unique_geom[:, 2],
+            n_max=n_max,
+            n_truncate=n_truncate,
+            a_ref=a_ref,
+        )
+        gc_lat_deg = np.rad2deg(unique_geom[:, 0])
+        lon_deg = np.rad2deg(unique_geom[:, 1])
+        gd_lat_deg, _, _ = geocentric_to_geodetic(gc_lat_deg, lon_deg, unique_geom[:, 2])
+        psi = np.deg2rad(gd_lat_deg - gc_lat_deg)
+
+        br = g_sph_unique[0::3]
+        bt = g_sph_unique[1::3]
+        bp = g_sph_unique[2::3]
+
+        g_ned_unique = np.empty_like(g_sph_unique)
+        g_ned_unique[0::3] = -bt * np.cos(psi)[:, None] - br * np.sin(psi)[:, None]
+        g_ned_unique[1::3] = bp
+        g_ned_unique[2::3] = bt * np.sin(psi)[:, None] - br * np.cos(psi)[:, None]
+
+        n_coeff = g_ned_unique.shape[1]
+        n_pts = lat.size
+        g_ned = np.empty((3 * n_pts, n_coeff), dtype=float)
+        g_ned[0::3] = g_ned_unique[0::3][inverse]
+        g_ned[1::3] = g_ned_unique[1::3][inverse]
+        g_ned[2::3] = g_ned_unique[2::3][inverse]
+        return g_ned
+
+    g_sph = build_design_matrix(lat, lon, r, n_max=n_max, n_truncate=n_truncate, a_ref=a_ref)
+    gc_lat_deg = np.rad2deg(lat)
+    lon_deg = np.rad2deg(lon)
+    gd_lat_deg, _, _ = geocentric_to_geodetic(gc_lat_deg, lon_deg, r)
+    psi = np.deg2rad(gd_lat_deg - gc_lat_deg)
+
+    br = g_sph[0::3]
+    bt = g_sph[1::3]
+    bp = g_sph[2::3]
+    g_ned = np.empty_like(g_sph)
+    g_ned[0::3] = -bt * np.cos(psi)[:, None] - br * np.sin(psi)[:, None]
+    g_ned[1::3] = bp
+    g_ned[2::3] = bt * np.sin(psi)[:, None] - br * np.cos(psi)[:, None]
+    return g_ned
+
+
+__all__ = ["build_design_matrix", "build_ned_jacobian", "_compute_schmidt_p_and_dp", "_compute_trig"]

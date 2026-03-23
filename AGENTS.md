@@ -41,6 +41,10 @@ operations and a matrix-form design-matrix approach.
 9. Geodetic NED: X=North, Y=East, Z=Down (positive downward).
 10. Inclination I positive downward (I > 0 in Northern Hemisphere).
 11. Declination D positive eastward from North.
+12. For NED Jacobians, columns represent partial derivatives with respect
+    to coefficient vector `c` in order
+    `[g10, g11, h11, g20, g21, h21, ...]`.
+    `build_ned_jacobian` returns `∂[X,Y,Z]/∂c` (NOT a 3x3 rotation matrix).
 
 ## Performance rules
 - NEVER materialise the full G matrix for N_points > 10^5.
@@ -55,6 +59,8 @@ operations and a matrix-form design-matrix approach.
 - For datasets with repeated station geometry, cache by unique
   `(gc_lat, lon, r)` and reuse harmonic basis matrices
   (see `compute_sph_cached` path) instead of recomputing per row.
+- Apply the same unique-geometry cache strategy to Jacobian generation
+  (`build_ned_jacobian(use_cache=True)`).
 
 ## File format rules for io/reader.py
 - Format detection must not use file extension — use content inspection.
@@ -82,6 +88,8 @@ operations and a matrix-form design-matrix approach.
 - Use pytest fixtures for model loading (scope="module" for heavy loads).
 - Tests must not require network access. Bundle all test data locally.
 - Parametrize multi-point and single-point tests separately.
+- For new Jacobian code paths, include at least one finite-difference
+  derivative test versus direct field evaluation.
 
 ## Documentation rules
 - Every module has a module-level docstring explaining its purpose.
