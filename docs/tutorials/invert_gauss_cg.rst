@@ -41,3 +41,24 @@ Notes
 - ``use_cache=True`` reuses Jacobian blocks for repeated
   ``(gc_lat, lon, r)`` geometry.
 
+Regularized API
+---------------
+
+Use the explicit Tikhonov wrapper when you want ``lambda`` as a direct
+user parameter:
+
+.. code-block:: python
+
+   from shgeomag.inversion import invert_gauss_coefficients_cg_tikhonov
+
+   result_reg = invert_gauss_coefficients_cg_tikhonov(
+       data=data,
+       n_max=8,
+       lambda_reg=1000.0,
+       max_iter=200,
+       tol=1e-8,
+       use_cache=True,
+   )
+
+   print(result_reg.converged)
+   print(result_reg.final_relative_residual)

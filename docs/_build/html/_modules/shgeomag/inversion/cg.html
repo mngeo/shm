@@ -725,8 +725,68 @@
 
 
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;CGInversionResult&quot;</span><span class="p">,</span> <span class="s2">&quot;invert_gauss_coefficients_cg&quot;</span><span class="p">,</span> <span class="s2">&quot;forward_ned_from_coefficients&quot;</span><span class="p">]</span>
+<div class="viewcode-block" id="invert_gauss_coefficients_cg_tikhonov">
+<a class="viewcode-back" href="../../../api/inversion.html#shgeomag.inversion.cg.invert_gauss_coefficients_cg_tikhonov">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">invert_gauss_coefficients_cg_tikhonov</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">n_max</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">lambda_reg</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+    <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
+    <span class="n">x0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">use_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">epoch_year</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CGInversionResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Invert NED observations with CG and Tikhonov ``lambda * I`` regularization.</span>
 
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : ndarray</span>
+<span class="sd">        Observation matrix with columns</span>
+<span class="sd">        ``[MJD2000, gc_lat_deg, lon_deg, r_km, X_nT, Y_nT, Z_nT]``.</span>
+<span class="sd">    n_max : int</span>
+<span class="sd">        Target maximum spherical harmonic degree.</span>
+<span class="sd">    lambda_reg : float</span>
+<span class="sd">        Tikhonov regularization weight ``lambda`` applied as</span>
+<span class="sd">        ``(J^T J + lambda I) c = J^T d``.</span>
+<span class="sd">    max_iter : int, default=200</span>
+<span class="sd">        Maximum CG iterations on normal equations.</span>
+<span class="sd">    tol : float, default=1e-8</span>
+<span class="sd">        Relative residual stopping threshold.</span>
+<span class="sd">    x0 : ndarray, optional</span>
+<span class="sd">        Initial coefficient vector. Defaults to zeros.</span>
+<span class="sd">    use_cache : bool, default=True</span>
+<span class="sd">        Enable unique-geometry cache for Jacobian products.</span>
+<span class="sd">    epoch_year : float, optional</span>
+<span class="sd">        Epoch assigned to the output ``GaussCoefficients`` object.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    CGInversionResult</span>
+<span class="sd">        Inverted coefficients, diagnostics, and fitted NED values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">lambda_reg</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;lambda_reg must be non-negative&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">invert_gauss_coefficients_cg</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+        <span class="n">n_max</span><span class="o">=</span><span class="n">n_max</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+        <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
+        <span class="n">damping</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">lambda_reg</span><span class="p">),</span>
+        <span class="n">x0</span><span class="o">=</span><span class="n">x0</span><span class="p">,</span>
+        <span class="n">use_cache</span><span class="o">=</span><span class="n">use_cache</span><span class="p">,</span>
+        <span class="n">epoch_year</span><span class="o">=</span><span class="n">epoch_year</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;CGInversionResult&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;invert_gauss_coefficients_cg&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;invert_gauss_coefficients_cg_tikhonov&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;forward_ned_from_coefficients&quot;</span><span class="p">,</span>
+<span class="p">]</span>
 </pre></div>
 
                 </article>

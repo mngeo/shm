@@ -45,6 +45,10 @@ operations and a matrix-form design-matrix approach.
     to coefficient vector `c` in order
     `[g10, g11, h11, g20, g21, h21, ...]`.
     `build_ned_jacobian` returns `∂[X,Y,Z]/∂c` (NOT a 3x3 rotation matrix).
+13. Regularized inversion uses Tikhonov with identity:
+    ``(J^T J + λI)c = J^T d``.
+    User-facing regularized API: `invert_gauss_coefficients_cg_tikhonov`
+    with explicit `lambda_reg`.
 
 ## Performance rules
 - NEVER materialise the full G matrix for N_points > 10^5.
@@ -141,4 +145,8 @@ operations and a matrix-form design-matrix approach.
 7. **Coefficient count:** For degree/order `N_max`, the number of `g` coefficients = `N_max*(N_max+2)/2` approximately, but precisely: `Σ_{n=1}^{N_max} (n+1)` = `N_max*(N_max+2)` total coefficients (both g and h). Verify this against the model file line count.
 
 8. **Truncation must reindex:** When `truncate(n_new)` is called, rebuild the coefficient index array; do not just zero out the high-degree terms (zeros in c are not equivalent to a truncated model for the design-matrix column structure).
+
+9. **Regularization semantics:** Use `lambda_reg` only as
+   Tikhonov identity weight in coefficient space; do not alter Jacobian
+   column ordering or observation units when enabling regularization.
 ```

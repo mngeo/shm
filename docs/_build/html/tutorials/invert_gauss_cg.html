@@ -482,6 +482,26 @@ coefficients.</p>
 <code class="docutils literal notranslate"><span class="pre">(gc_lat,</span> <span class="pre">lon,</span> <span class="pre">r)</span></code> geometry.</p></li>
 </ul>
 </section>
+<section id="regularized-api">
+<h2>Regularized API<a class="headerlink" href="#regularized-api" title="Link to this heading">#</a></h2>
+<p>Use the explicit Tikhonov wrapper when you want <code class="docutils literal notranslate"><span class="pre">lambda</span></code> as a direct
+user parameter:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag.inversion</span><span class="w"> </span><span class="kn">import</span> <span class="n">invert_gauss_coefficients_cg_tikhonov</span>
+
+<span class="n">result_reg</span> <span class="o">=</span> <span class="n">invert_gauss_coefficients_cg_tikhonov</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+    <span class="n">n_max</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+    <span class="n">lambda_reg</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">,</span>
+    <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+    <span class="n">tol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
+    <span class="n">use_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">result_reg</span><span class="o">.</span><span class="n">converged</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result_reg</span><span class="o">.</span><span class="n">final_relative_residual</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
 </section>
 
 
@@ -523,6 +543,7 @@ coefficients.</p>
   <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#notes">Notes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#regularized-api">Regularized API</a></li>
 </ul>
   </nav></div>
 

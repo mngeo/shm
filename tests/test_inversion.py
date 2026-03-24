@@ -1,7 +1,12 @@
 import numpy as np
+import pytest
 
 from shgeomag.core.field import compute_geo
-from shgeomag.inversion.cg import forward_ned_from_coefficients, invert_gauss_coefficients_cg
+from shgeomag.inversion.cg import (
+    forward_ned_from_coefficients,
+    invert_gauss_coefficients_cg,
+    invert_gauss_coefficients_cg_tikhonov,
+)
 from shgeomag.io.reader import load_model
 
 
@@ -85,3 +90,48 @@ def test_invert_gauss_coefficients_cache_matches_no_cache():
     out_cache = invert_gauss_coefficients_cg(data, n_max=3, max_iter=300, tol=1e-12, use_cache=True)
     out_nocache = invert_gauss_coefficients_cg(data, n_max=3, max_iter=300, tol=1e-12, use_cache=False)
     assert np.allclose(out_cache.coefficient_vector, out_nocache.coefficient_vector, rtol=1e-10, atol=1e-7)
+
+
+def test_invert_gauss_coefficients_tikhonov_matches_damping_path():
+    rng = np.random.default_rng(2024)
+    c_true = rng.normal(0.0, 100.0, size=15)  # n_max=3 -> 15 coefficients
+
+    n = 90
+    gc_lat_deg = rng.uniform(-70.0, 70.0, n)
+    lon_deg = rng.uniform(0.0, 360.0, n)
+    r_km = rng.uniform(6350.0, 6800.0, n)
+    pred = forward_ned_from_coefficients(
+        c_true,
+        np.deg2rad(gc_lat_deg),
+        np.deg2rad(lon_deg),
+        r_km,
+        n_max=3,
+        use_cache=True,
+    )
+    data = np.column_stack([np.full(n, 100.0), gc_lat_deg, lon_deg, r_km, pred[:, 0], pred[:, 1], pred[:, 2]])
+
+    lambda_reg = 2.5
+    out_damping = invert_gauss_coefficients_cg(
+        data,
+        n_max=3,
+        max_iter=300,
+        tol=1e-12,
+        damping=lambda_reg,
+        use_cache=True,
+    )
+    out_reg = invert_gauss_coefficients_cg_tikhonov(
+        data,
+        n_max=3,
+        lambda_reg=lambda_reg,
+        max_iter=300,
+        tol=1e-12,
+        use_cache=True,
+    )
+    assert np.allclose(out_reg.coefficient_vector, out_damping.coefficient_vector, rtol=1e-11, atol=1e-9)
+    assert np.allclose(out_reg.predicted_xyz, out_damping.predicted_xyz, rtol=1e-12, atol=1e-10)
+
+
+def test_invert_gauss_coefficients_tikhonov_rejects_negative_lambda():
+    data = np.array([[0.0, 0.0, 0.0, 6371.2, 0.0, 0.0, 0.0]])
+    with pytest.raises(ValueError, match="lambda_reg must be non-negative"):
+        invert_gauss_coefficients_cg_tikhonov(data, n_max=1, lambda_reg=-1.0)

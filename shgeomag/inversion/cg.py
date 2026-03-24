@@ -282,5 +282,62 @@ def invert_gauss_coefficients_cg(
     )
 
 
-__all__ = ["CGInversionResult", "invert_gauss_coefficients_cg", "forward_ned_from_coefficients"]
+def invert_gauss_coefficients_cg_tikhonov(
+    data: np.ndarray,
+    n_max: int,
+    lambda_reg: float,
+    max_iter: int = 200,
+    tol: float = 1e-8,
+    x0: np.ndarray | None = None,
+    use_cache: bool = True,
+    epoch_year: float | None = None,
+) -> CGInversionResult:
+    """Invert NED observations with CG and Tikhonov ``lambda * I`` regularization.
 
+    Parameters
+    ----------
+    data : ndarray
+        Observation matrix with columns
+        ``[MJD2000, gc_lat_deg, lon_deg, r_km, X_nT, Y_nT, Z_nT]``.
+    n_max : int
+        Target maximum spherical harmonic degree.
+    lambda_reg : float
+        Tikhonov regularization weight ``lambda`` applied as
+        ``(J^T J + lambda I) c = J^T d``.
+    max_iter : int, default=200
+        Maximum CG iterations on normal equations.
+    tol : float, default=1e-8
+        Relative residual stopping threshold.
+    x0 : ndarray, optional
+        Initial coefficient vector. Defaults to zeros.
+    use_cache : bool, default=True
+        Enable unique-geometry cache for Jacobian products.
+    epoch_year : float, optional
+        Epoch assigned to the output ``GaussCoefficients`` object.
+
+    Returns
+    -------
+    CGInversionResult
+        Inverted coefficients, diagnostics, and fitted NED values.
+    """
+    if lambda_reg < 0.0:
+        raise ValueError("lambda_reg must be non-negative")
+
+    return invert_gauss_coefficients_cg(
+        data=data,
+        n_max=n_max,
+        max_iter=max_iter,
+        tol=tol,
+        damping=float(lambda_reg),
+        x0=x0,
+        use_cache=use_cache,
+        epoch_year=epoch_year,
+    )
+
+
+__all__ = [
+    "CGInversionResult",
+    "invert_gauss_coefficients_cg",
+    "invert_gauss_coefficients_cg_tikhonov",
+    "forward_ned_from_coefficients",
+]

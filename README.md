@@ -25,7 +25,10 @@ import numpy as np
 from shgeomag.io.reader import load_model
 from shgeomag.core.design_matrix import build_ned_jacobian
 from shgeomag.core.field import compute_fdi, compute_sph_cached
-from shgeomag.inversion import invert_gauss_coefficients_cg
+from shgeomag.inversion import (
+    invert_gauss_coefficients_cg,
+    invert_gauss_coefficients_cg_tikhonov,
+)
 from shgeomag.utils import global_grid
 
 model = load_model("models/WMM2025.COF")
@@ -84,6 +87,17 @@ res = invert_gauss_coefficients_cg(
 )
 print(res.converged, res.iterations, res.final_relative_residual)
 print(res.coefficient_vector.shape)  # (n_max*(n_max+2),)
+
+# Tikhonov-regularized variant with explicit lambda.
+res_reg = invert_gauss_coefficients_cg_tikhonov(
+    data,
+    n_max=8,
+    lambda_reg=1000.0,
+    max_iter=200,
+    tol=1e-8,
+    use_cache=True,
+)
+print(res_reg.converged, res_reg.iterations, res_reg.final_relative_residual)
 ```
 
 ## Performance Notes
@@ -96,6 +110,9 @@ print(res.coefficient_vector.shape)  # (n_max*(n_max+2),)
   via `use_cache=True` (default).
 - `invert_gauss_coefficients_cg(...)` uses a cached Jacobian operator for
   `J @ v` and `J.T @ v` products when `use_cache=True`.
+- `invert_gauss_coefficients_cg_tikhonov(...)` is the explicit
+  Tikhonov-regularized API using ``(J^T J + lambda I) c = J^T d`` with
+  user-provided `lambda_reg`.
 
 ## Model Files
 - WMM example: `models/WMM2025.COF`
