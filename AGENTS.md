@@ -49,6 +49,9 @@ operations and a matrix-form design-matrix approach.
     ``(J^T J + λI)c = J^T d``.
     User-facing regularized API: `invert_gauss_coefficients_cg_tikhonov`
     with explicit `lambda_reg`.
+14. L-curve evaluation must sweep user-provided lambda values and return
+    both `||c||_2` (solution norm) and `||d - Jc||_2` (residual norm).
+    Plotting must remain optional (`plot=True/False`) for headless runs.
 
 ## Performance rules
 - NEVER materialise the full G matrix for N_points > 10^5.
@@ -149,4 +152,7 @@ operations and a matrix-form design-matrix approach.
 9. **Regularization semantics:** Use `lambda_reg` only as
    Tikhonov identity weight in coefficient space; do not alter Jacobian
    column ordering or observation units when enabling regularization.
+
+10. **L-curve reproducibility:** For comparative lambda sweeps, keep
+    preprocessing, geometry selection, and initial model settings fixed.
 ```

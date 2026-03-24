@@ -26,6 +26,7 @@ from shgeomag.io.reader import load_model
 from shgeomag.core.design_matrix import build_ned_jacobian
 from shgeomag.core.field import compute_fdi, compute_sph_cached
 from shgeomag.inversion import (
+    compute_l_curve_tikhonov,
     invert_gauss_coefficients_cg,
     invert_gauss_coefficients_cg_tikhonov,
 )
@@ -98,7 +99,28 @@ res_reg = invert_gauss_coefficients_cg_tikhonov(
     use_cache=True,
 )
 print(res_reg.converged, res_reg.iterations, res_reg.final_relative_residual)
+
+# L-curve for user-selected lambdas (plot can be switched off).
+solution_norm, residual_norm = compute_l_curve_tikhonov(
+    data=data,
+    n_max=8,
+    lambda_values=np.array([0.0, 1.0, 10.0, 100.0, 1000.0]),
+    plot=False,
+)
+print(solution_norm, residual_norm)
 ```
+
+## Pipeline Reference (2020.0 + L-curve)
+- End-to-end observatory preprocessing and inversion recipe:
+  - `inversion_pipeline_01.md`
+- Includes:
+  - data mapping (`obs -> gc_lat/lon/r`)
+  - obs-list filter
+  - ±1.5 year time window around `2020-01-01`
+  - daily mean (`>=3/day`)
+  - crustal-bias subtraction
+  - degree-12 Tikhonov inversion
+  - L-curve (`lambda=[0,10,100,1000,10000]`)
 
 ## Performance Notes
 - For one-off forward evaluation, prefer `compute_sph(...)`.
@@ -113,6 +135,9 @@ print(res_reg.converged, res_reg.iterations, res_reg.final_relative_residual)
 - `invert_gauss_coefficients_cg_tikhonov(...)` is the explicit
   Tikhonov-regularized API using ``(J^T J + lambda I) c = J^T d`` with
   user-provided `lambda_reg`.
+- `compute_l_curve_tikhonov(...)` returns
+  ``(solution_norm, residual_norm)`` for a lambda array and can
+  optionally plot the L-curve (`plot=True/False`).
 
 ## Model Files
 - WMM example: `models/WMM2025.COF`

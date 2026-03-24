@@ -502,6 +502,35 @@ user parameter:</p>
 </pre></div>
 </div>
 </section>
+<section id="l-curve">
+<h2>L-curve<a class="headerlink" href="#l-curve" title="Link to this heading">#</a></h2>
+<p>Compute residual/solution norms over user-provided lambdas, with optional
+plotting:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag.inversion</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_l_curve_tikhonov</span>
+
+<span class="n">solution_norm</span><span class="p">,</span> <span class="n">residual_norm</span> <span class="o">=</span> <span class="n">compute_l_curve_tikhonov</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+    <span class="n">n_max</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+    <span class="n">lambda_values</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">,</span> <span class="mf">1000.0</span><span class="p">]),</span>
+    <span class="n">plot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># set True to generate log-log L-curve plot</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">solution_norm</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">residual_norm</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="practical-pipeline-notes">
+<h2>Practical Pipeline Notes<a class="headerlink" href="#practical-pipeline-notes" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>For the repository’s current observatory pipeline (epoch <code class="docutils literal notranslate"><span class="pre">2020.0</span></code>),
+apply mapping/filtering/averaging/bias-correction before inversion.</p></li>
+<li><p>Keep preprocessing fixed while sweeping lambda values for an interpretable
+L-curve.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">plot=False</span></code> in headless or CI environments and persist the returned
+norm arrays to text.</p></li>
+</ul>
+</section>
 </section>
 
 
@@ -544,6 +573,8 @@ user parameter:</p>
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#notes">Notes</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#regularized-api">Regularized API</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#l-curve">L-curve</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#practical-pipeline-notes">Practical Pipeline Notes</a></li>
 </ul>
   </nav></div>
 

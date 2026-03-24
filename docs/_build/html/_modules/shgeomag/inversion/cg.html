@@ -781,10 +781,113 @@
 
 
 
+<div class="viewcode-block" id="compute_l_curve_tikhonov">
+<a class="viewcode-back" href="../../../api/inversion.html#shgeomag.inversion.cg.compute_l_curve_tikhonov">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_l_curve_tikhonov</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">n_max</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">lambda_values</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+    <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
+    <span class="n">x0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">use_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">epoch_year</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">plot</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">ax</span><span class="p">:</span> <span class="nb">object</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute L-curve residual/solution norms across user-provided lambdas.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : ndarray</span>
+<span class="sd">        Observation matrix with columns</span>
+<span class="sd">        ``[MJD2000, gc_lat_deg, lon_deg, r_km, X_nT, Y_nT, Z_nT]``.</span>
+<span class="sd">    n_max : int</span>
+<span class="sd">        Target maximum spherical harmonic degree.</span>
+<span class="sd">    lambda_values : ndarray</span>
+<span class="sd">        1D array of non-negative Tikhonov regularization values.</span>
+<span class="sd">    max_iter : int, default=200</span>
+<span class="sd">        Maximum CG iterations for each lambda.</span>
+<span class="sd">    tol : float, default=1e-8</span>
+<span class="sd">        Relative residual stopping threshold.</span>
+<span class="sd">    x0 : ndarray, optional</span>
+<span class="sd">        Initial coefficient vector for each lambda solve.</span>
+<span class="sd">    use_cache : bool, default=True</span>
+<span class="sd">        Enable unique-geometry cache for Jacobian products.</span>
+<span class="sd">    epoch_year : float, optional</span>
+<span class="sd">        Epoch assigned to output ``GaussCoefficients`` objects.</span>
+<span class="sd">    plot : bool, default=True</span>
+<span class="sd">        If ``True``, generate a log-log L-curve plot.</span>
+<span class="sd">    ax : object, optional</span>
+<span class="sd">        Matplotlib axis object. If omitted and ``plot=True``, a new figure</span>
+<span class="sd">        and axis are created.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple of ndarray</span>
+<span class="sd">        ``(solution_norm, residual_norm)`` for each input lambda in order.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The L-curve points are:</span>
+<span class="sd">    ``solution_norm = ||c_lambda||_2`` and</span>
+<span class="sd">    ``residual_norm = ||d - J c_lambda||_2``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lambdas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lambda_values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">lambdas</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;lambda_values must be a non-empty array&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">lambdas</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;lambda_values must contain only finite values&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">lambdas</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;lambda_values must be non-negative&quot;</span><span class="p">)</span>
+
+    <span class="n">solution_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">lambdas</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">residual_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">lambdas</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">lam</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lambdas</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">invert_gauss_coefficients_cg_tikhonov</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">n_max</span><span class="o">=</span><span class="n">n_max</span><span class="p">,</span>
+            <span class="n">lambda_reg</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">lam</span><span class="p">),</span>
+            <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+            <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
+            <span class="n">x0</span><span class="o">=</span><span class="n">x0</span><span class="p">,</span>
+            <span class="n">use_cache</span><span class="o">=</span><span class="n">use_cache</span><span class="p">,</span>
+            <span class="n">epoch_year</span><span class="o">=</span><span class="n">epoch_year</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">solution_norm</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">coefficient_vector</span><span class="p">))</span>
+        <span class="n">residual_norm</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">residual_xyz</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
+
+    <span class="k">if</span> <span class="n">plot</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+        <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;matplotlib is required when plot=True&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">ax</span>
+        <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+
+        <span class="n">axis</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">residual_norm</span><span class="p">,</span> <span class="n">solution_norm</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Residual norm ||d - Jc||_2&quot;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Solution norm ||c||_2&quot;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;L-curve (Tikhonov)&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">rn</span><span class="p">,</span> <span class="n">sn</span><span class="p">,</span> <span class="n">lam</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">residual_norm</span><span class="p">,</span> <span class="n">solution_norm</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+            <span class="n">axis</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">lam</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">rn</span><span class="p">,</span> <span class="n">sn</span><span class="p">),</span> <span class="n">textcoords</span><span class="o">=</span><span class="s2">&quot;offset points&quot;</span><span class="p">,</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">solution_norm</span><span class="p">,</span> <span class="n">residual_norm</span></div>
+
+
+
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s2">&quot;CGInversionResult&quot;</span><span class="p">,</span>
     <span class="s2">&quot;invert_gauss_coefficients_cg&quot;</span><span class="p">,</span>
     <span class="s2">&quot;invert_gauss_coefficients_cg_tikhonov&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;compute_l_curve_tikhonov&quot;</span><span class="p">,</span>
     <span class="s2">&quot;forward_ned_from_coefficients&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 </pre></div>

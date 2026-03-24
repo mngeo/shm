@@ -3,6 +3,7 @@ import pytest
 
 from shgeomag.core.field import compute_geo
 from shgeomag.inversion.cg import (
+    compute_l_curve_tikhonov,
     forward_ned_from_coefficients,
     invert_gauss_coefficients_cg,
     invert_gauss_coefficients_cg_tikhonov,
@@ -135,3 +136,64 @@ def test_invert_gauss_coefficients_tikhonov_rejects_negative_lambda():
     data = np.array([[0.0, 0.0, 0.0, 6371.2, 0.0, 0.0, 0.0]])
     with pytest.raises(ValueError, match="lambda_reg must be non-negative"):
         invert_gauss_coefficients_cg_tikhonov(data, n_max=1, lambda_reg=-1.0)
+
+
+def test_compute_l_curve_tikhonov_returns_norm_arrays():
+    rng = np.random.default_rng(45)
+    c_true = rng.normal(0.0, 100.0, size=15)  # n_max=3 -> 15 coefficients
+
+    n = 100
+    gc_lat_deg = rng.uniform(-75.0, 75.0, n)
+    lon_deg = rng.uniform(0.0, 360.0, n)
+    r_km = rng.uniform(6350.0, 6800.0, n)
+    pred = forward_ned_from_coefficients(
+        c_true,
+        np.deg2rad(gc_lat_deg),
+        np.deg2rad(lon_deg),
+        r_km,
+        n_max=3,
+        use_cache=True,
+    )
+    data = np.column_stack([np.full(n, 200.0), gc_lat_deg, lon_deg, r_km, pred[:, 0], pred[:, 1], pred[:, 2]])
+    x0 = rng.normal(0.0, 20.0, size=15)
+    lambdas = np.array([0.0, 1.0, 100.0], dtype=float)
+
+    solution_norm, residual_norm = compute_l_curve_tikhonov(
+        data=data,
+        n_max=3,
+        lambda_values=lambdas,
+        max_iter=300,
+        tol=1e-12,
+        x0=x0,
+        use_cache=True,
+        plot=False,
+    )
+
+    assert solution_norm.shape == lambdas.shape
+    assert residual_norm.shape == lambdas.shape
+    assert np.all(np.isfinite(solution_norm))
+    assert np.all(np.isfinite(residual_norm))
+    assert np.all(solution_norm >= 0.0)
+    assert np.all(residual_norm >= 0.0)
+
+    ref = invert_gauss_coefficients_cg_tikhonov(
+        data=data,
+        n_max=3,
+        lambda_reg=0.0,
+        max_iter=300,
+        tol=1e-12,
+        x0=x0,
+        use_cache=True,
+    )
+    assert np.isclose(solution_norm[0], np.linalg.norm(ref.coefficient_vector), rtol=1e-10, atol=1e-10)
+    assert np.isclose(residual_norm[0], np.linalg.norm(ref.residual_xyz.reshape(-1)), rtol=1e-10, atol=1e-10)
+
+
+def test_compute_l_curve_tikhonov_rejects_invalid_lambda_array():
+    data = np.array([[0.0, 0.0, 0.0, 6371.2, 0.0, 0.0, 0.0]])
+    with pytest.raises(ValueError, match="non-empty"):
+        compute_l_curve_tikhonov(data, n_max=1, lambda_values=np.array([]), plot=False)
+    with pytest.raises(ValueError, match="finite"):
+        compute_l_curve_tikhonov(data, n_max=1, lambda_values=np.array([0.0, np.nan]), plot=False)
+    with pytest.raises(ValueError, match="non-negative"):
+        compute_l_curve_tikhonov(data, n_max=1, lambda_values=np.array([-1.0, 0.0]), plot=False)

@@ -335,9 +335,109 @@ def invert_gauss_coefficients_cg_tikhonov(
     )
 
 
+def compute_l_curve_tikhonov(
+    data: np.ndarray,
+    n_max: int,
+    lambda_values: np.ndarray,
+    max_iter: int = 200,
+    tol: float = 1e-8,
+    x0: np.ndarray | None = None,
+    use_cache: bool = True,
+    epoch_year: float | None = None,
+    plot: bool = True,
+    ax: object | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Compute L-curve residual/solution norms across user-provided lambdas.
+
+    Parameters
+    ----------
+    data : ndarray
+        Observation matrix with columns
+        ``[MJD2000, gc_lat_deg, lon_deg, r_km, X_nT, Y_nT, Z_nT]``.
+    n_max : int
+        Target maximum spherical harmonic degree.
+    lambda_values : ndarray
+        1D array of non-negative Tikhonov regularization values.
+    max_iter : int, default=200
+        Maximum CG iterations for each lambda.
+    tol : float, default=1e-8
+        Relative residual stopping threshold.
+    x0 : ndarray, optional
+        Initial coefficient vector for each lambda solve.
+    use_cache : bool, default=True
+        Enable unique-geometry cache for Jacobian products.
+    epoch_year : float, optional
+        Epoch assigned to output ``GaussCoefficients`` objects.
+    plot : bool, default=True
+        If ``True``, generate a log-log L-curve plot.
+    ax : object, optional
+        Matplotlib axis object. If omitted and ``plot=True``, a new figure
+        and axis are created.
+
+    Returns
+    -------
+    tuple of ndarray
+        ``(solution_norm, residual_norm)`` for each input lambda in order.
+
+    Notes
+    -----
+    The L-curve points are:
+    ``solution_norm = ||c_lambda||_2`` and
+    ``residual_norm = ||d - J c_lambda||_2``.
+    """
+    lambdas = np.asarray(lambda_values, dtype=float).ravel()
+    if lambdas.size == 0:
+        raise ValueError("lambda_values must be a non-empty array")
+    if np.any(~np.isfinite(lambdas)):
+        raise ValueError("lambda_values must contain only finite values")
+    if np.any(lambdas < 0.0):
+        raise ValueError("lambda_values must be non-negative")
+
+    solution_norm = np.empty(lambdas.size, dtype=float)
+    residual_norm = np.empty(lambdas.size, dtype=float)
+
+    for i, lam in enumerate(lambdas):
+        result = invert_gauss_coefficients_cg_tikhonov(
+            data=data,
+            n_max=n_max,
+            lambda_reg=float(lam),
+            max_iter=max_iter,
+            tol=tol,
+            x0=x0,
+            use_cache=use_cache,
+            epoch_year=epoch_year,
+        )
+        solution_norm[i] = float(np.linalg.norm(result.coefficient_vector))
+        residual_norm[i] = float(np.linalg.norm(result.residual_xyz.reshape(-1)))
+
+    if plot:
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError("matplotlib is required when plot=True") from exc
+
+        axis = ax
+        if axis is None:
+            _, axis = plt.subplots()
+
+        axis.loglog(residual_norm, solution_norm, marker="o")
+        axis.set_xlabel("Residual norm ||d - Jc||_2")
+        axis.set_ylabel("Solution norm ||c||_2")
+        axis.set_title("L-curve (Tikhonov)")
+
+        for rn, sn, lam in zip(residual_norm, solution_norm, lambdas, strict=True):
+            axis.annotate(f"{lam:g}", (rn, sn), textcoords="offset points", xytext=(4, 4), fontsize=8)
+
+        if ax is None:
+            plt.tight_layout()
+
+    return solution_norm, residual_norm
+
+
 __all__ = [
     "CGInversionResult",
     "invert_gauss_coefficients_cg",
     "invert_gauss_coefficients_cg_tikhonov",
+    "compute_l_curve_tikhonov",
     "forward_ned_from_coefficients",
 ]

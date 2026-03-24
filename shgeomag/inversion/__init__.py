@@ -2,6 +2,7 @@
 
 from .cg import (
     CGInversionResult,
+    compute_l_curve_tikhonov,
     forward_ned_from_coefficients,
     invert_gauss_coefficients_cg,
     invert_gauss_coefficients_cg_tikhonov,
@@ -10,6 +11,7 @@ from .cg import (
 __all__ = [
     "invert_gauss_coefficients_cg",
     "invert_gauss_coefficients_cg_tikhonov",
+    "compute_l_curve_tikhonov",
     "forward_ned_from_coefficients",
     "CGInversionResult",
 ]

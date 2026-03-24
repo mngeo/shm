@@ -62,3 +62,33 @@ user parameter:
 
    print(result_reg.converged)
    print(result_reg.final_relative_residual)
+
+L-curve
+-------
+
+Compute residual/solution norms over user-provided lambdas, with optional
+plotting:
+
+.. code-block:: python
+
+   from shgeomag.inversion import compute_l_curve_tikhonov
+
+   solution_norm, residual_norm = compute_l_curve_tikhonov(
+       data=data,
+       n_max=8,
+       lambda_values=np.array([0.0, 1.0, 10.0, 100.0, 1000.0]),
+       plot=False,  # set True to generate log-log L-curve plot
+   )
+
+   print(solution_norm)
+   print(residual_norm)
+
+Practical Pipeline Notes
+------------------------
+
+- For the repository's current observatory pipeline (epoch ``2020.0``),
+  apply mapping/filtering/averaging/bias-correction before inversion.
+- Keep preprocessing fixed while sweeping lambda values for an interpretable
+  L-curve.
+- Use ``plot=False`` in headless or CI environments and persist the returned
+  norm arrays to text.
