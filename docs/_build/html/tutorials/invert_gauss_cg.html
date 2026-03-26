@@ -492,15 +492,19 @@ user parameter:</p>
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
     <span class="n">n_max</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
     <span class="n">lambda_reg</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">,</span>
-    <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
-    <span class="n">tol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
-    <span class="n">use_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+     <span class="n">regularization</span><span class="o">=</span><span class="s2">&quot;identity&quot;</span><span class="p">,</span>  <span class="c1"># or &quot;Manojs_scheme&quot;</span>
+     <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+     <span class="n">tol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
+     <span class="n">use_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">result_reg</span><span class="o">.</span><span class="n">converged</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">result_reg</span><span class="o">.</span><span class="n">final_relative_residual</span><span class="p">)</span>
 </pre></div>
 </div>
+<p><code class="docutils literal notranslate"><span class="pre">regularization=&quot;Manojs_scheme&quot;</span></code> uses
+<code class="docutils literal notranslate"><span class="pre">R</span> <span class="pre">=</span> <span class="pre">L^T</span> <span class="pre">L</span></code> with <code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">=</span> <span class="pre">diag((1:n_coeff)^2)</span></code> in
+<code class="docutils literal notranslate"><span class="pre">(J^T</span> <span class="pre">J</span> <span class="pre">+</span> <span class="pre">lambda_reg</span> <span class="pre">*</span> <span class="pre">R)</span> <span class="pre">c</span> <span class="pre">=</span> <span class="pre">J^T</span> <span class="pre">d</span></code>.</p>
 </section>
 <section id="l-curve">
 <h2>L-curve<a class="headerlink" href="#l-curve" title="Link to this heading">#</a></h2>
@@ -512,6 +516,7 @@ plotting:</p>
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
     <span class="n">n_max</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
     <span class="n">lambda_values</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">,</span> <span class="mf">1000.0</span><span class="p">]),</span>
+    <span class="n">regularization</span><span class="o">=</span><span class="s2">&quot;identity&quot;</span><span class="p">,</span>
     <span class="n">plot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># set True to generate log-log L-curve plot</span>
 <span class="p">)</span>
 
@@ -529,6 +534,16 @@ apply mapping/filtering/averaging/bias-correction before inversion.</p></li>
 L-curve.</p></li>
 <li><p>Use <code class="docutils literal notranslate"><span class="pre">plot=False</span></code> in headless or CI environments and persist the returned
 norm arrays to text.</p></li>
+</ul>
+</section>
+<section id="synthetic-recovery-tests">
+<h2>Synthetic Recovery Tests<a class="headerlink" href="#synthetic-recovery-tests" title="Link to this heading">#</a></h2>
+<p>The inversion test suite includes synthetic coefficient-recovery checks at
+epoch <code class="docutils literal notranslate"><span class="pre">2020.0</span></code> for both IGRF and WMM models, using RMS coefficient error:</p>
+<ul class="simple">
+<li><p>clean synthetic data (expect near-zero RMS)</p></li>
+<li><p>5% Gaussian component noise</p></li>
+<li><p>10% Gaussian component noise</p></li>
 </ul>
 </section>
 </section>
@@ -575,6 +590,7 @@ norm arrays to text.</p></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#regularized-api">Regularized API</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#l-curve">L-curve</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#practical-pipeline-notes">Practical Pipeline Notes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#synthetic-recovery-tests">Synthetic Recovery Tests</a></li>
 </ul>
   </nav></div>
 

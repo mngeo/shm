@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 import numpy as np
 
@@ -22,6 +23,9 @@ class CGInversionResult:
     iterations: int
     converged: bool
     final_relative_residual: float
+
+
+RegScheme = Literal["identity", "Manojs_scheme"]
 
 
 def _coeff_arrays_from_vector(c: np.ndarray, n_max: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -49,6 +53,37 @@ def _coeff_arrays_from_vector(c: np.ndarray, n_max: int) -> tuple[np.ndarray, np
         np.asarray(g_vals, dtype=float),
         np.asarray(h_vals, dtype=float),
     )
+
+
+def _regularization_diagonal(
+    n_coeff: int,
+    regularization: RegScheme,
+    reg_diag: np.ndarray | None = None,
+) -> np.ndarray:
+    """Return diagonal entries of regularization matrix ``R``.
+
+    Notes
+    -----
+    The regularized solve is:
+    ``(J^T J + lambda * R) c = J^T d``.
+    """
+    if reg_diag is not None:
+        diag = np.asarray(reg_diag, dtype=float).ravel()
+        if diag.size != n_coeff:
+            raise ValueError(f"reg_diag must have length {n_coeff}")
+        if np.any(~np.isfinite(diag)):
+            raise ValueError("reg_diag must contain only finite values")
+        if np.any(diag < 0.0):
+            raise ValueError("reg_diag must be non-negative")
+        return diag
+
+    if regularization == "identity":
+        return np.ones(n_coeff, dtype=float)
+    if regularization == "Manojs_scheme":
+        idx = np.arange(1, n_coeff + 1, dtype=float)
+        # L = diag((1:n_coeff)^2) -> L^T L = diag((1:n_coeff)^4)
+        return idx**4
+    raise ValueError("regularization must be one of {'identity', 'Manojs_scheme'}")
 
 
 class _CachedNEDJacobianOperator:
@@ -286,13 +321,15 @@ def invert_gauss_coefficients_cg_tikhonov(
     data: np.ndarray,
     n_max: int,
     lambda_reg: float,
+    regularization: RegScheme = "identity",
+    reg_diag: np.ndarray | None = None,
     max_iter: int = 200,
     tol: float = 1e-8,
     x0: np.ndarray | None = None,
     use_cache: bool = True,
     epoch_year: float | None = None,
 ) -> CGInversionResult:
-    """Invert NED observations with CG and Tikhonov ``lambda * I`` regularization.
+    """Invert NED observations with CG and Tikhonov regularization.
 
     Parameters
     ----------
@@ -304,6 +341,15 @@ def invert_gauss_coefficients_cg_tikhonov(
     lambda_reg : float
         Tikhonov regularization weight ``lambda`` applied as
         ``(J^T J + lambda I) c = J^T d``.
+    regularization : {"identity", "Manojs_scheme"}, default="identity"
+        Regularization matrix scheme ``R`` in
+        ``(J^T J + lambda_reg * R) c = J^T d``.
+        ``"identity"`` uses ``R = I``.
+        ``"Manojs_scheme"`` uses ``R = L^T L`` with
+        ``L = diag((1:n_coeff)^2)``.
+    reg_diag : ndarray, optional
+        Optional user-provided diagonal of ``R``. If provided, overrides
+        ``regularization``.
     max_iter : int, default=200
         Maximum CG iterations on normal equations.
     tol : float, default=1e-8
@@ -323,15 +369,97 @@ def invert_gauss_coefficients_cg_tikhonov(
     if lambda_reg < 0.0:
         raise ValueError("lambda_reg must be non-negative")
 
-    return invert_gauss_coefficients_cg(
-        data=data,
+    if regularization == "identity" and reg_diag is None:
+        return invert_gauss_coefficients_cg(
+            data=data,
+            n_max=n_max,
+            max_iter=max_iter,
+            tol=tol,
+            damping=float(lambda_reg),
+            x0=x0,
+            use_cache=use_cache,
+            epoch_year=epoch_year,
+        )
+
+    arr = np.asarray(data, dtype=float)
+    if arr.ndim != 2 or arr.shape[1] != 7:
+        raise ValueError("data must have shape (N, 7): [MJD2000,gc_lat,lon,r,X,Y,Z]")
+    if n_max <= 0:
+        raise ValueError("n_max must be positive")
+    if max_iter <= 0:
+        raise ValueError("max_iter must be positive")
+    if tol <= 0.0:
+        raise ValueError("tol must be positive")
+
+    gc_lat_rad = np.deg2rad(arr[:, 1])
+    lon_rad = np.deg2rad(arr[:, 2])
+    r_km = arr[:, 3]
+    d_obs = arr[:, 4:7].reshape(-1)
+
+    op = _CachedNEDJacobianOperator(gc_lat_rad, lon_rad, r_km, n_max=n_max, use_cache=use_cache)
+    n_coeff = op.n_coeff
+    reg_d = _regularization_diagonal(n_coeff, regularization=regularization, reg_diag=reg_diag)
+
+    c = np.zeros(n_coeff, dtype=float) if x0 is None else np.asarray(x0, dtype=float).ravel().copy()
+    if c.size != n_coeff:
+        raise ValueError(f"x0 must have length {n_coeff}")
+
+    def normal_matvec(v: np.ndarray) -> np.ndarray:
+        return op.rmatvec(op.matvec(v)) + float(lambda_reg) * reg_d * v
+
+    b = op.rmatvec(d_obs)
+    r = b - normal_matvec(c)
+    p = r.copy()
+    rr = float(r @ r)
+    b_norm = float(np.linalg.norm(b))
+    target = tol * (b_norm if b_norm > 0.0 else 1.0)
+    converged = False
+
+    for it in range(1, max_iter + 1):
+        ap = normal_matvec(p)
+        denom = float(p @ ap)
+        if np.isclose(denom, 0.0):
+            iterations = it - 1
+            break
+        alpha = rr / denom
+        c += alpha * p
+        r -= alpha * ap
+        rr_new = float(r @ r)
+        if np.sqrt(rr_new) <= target:
+            converged = True
+            rr = rr_new
+            iterations = it
+            break
+        beta = rr_new / rr
+        p = r + beta * p
+        rr = rr_new
+    else:
+        iterations = max_iter
+
+    predicted = op.matvec(c).reshape(-1, 3)
+    residual = arr[:, 4:7] - predicted
+    rel_res = float(np.sqrt(rr) / (b_norm if b_norm > 0.0 else 1.0))
+
+    if epoch_year is None:
+        epoch_year = float(np.median(mjd2000_to_decimal_year(arr[:, 0])))
+    n_array, m_array, g_vals, h_vals = _coeff_arrays_from_vector(c, n_max)
+    coeff = GaussCoefficients(
+        epoch=float(epoch_year),
         n_max=n_max,
-        max_iter=max_iter,
-        tol=tol,
-        damping=float(lambda_reg),
-        x0=x0,
-        use_cache=use_cache,
-        epoch_year=epoch_year,
+        n_array=n_array,
+        m_array=m_array,
+        g=g_vals,
+        h=h_vals,
+    )
+
+    return CGInversionResult(
+        coefficient_vector=c,
+        coefficients=coeff,
+        predicted_xyz=predicted,
+        residual_xyz=residual,
+        iterations=iterations,
+        converged=converged,
+        final_relative_residual=rel_res,
     )
 
 
@@ -339,6 +467,8 @@ def compute_l_curve_tikhonov(
     data: np.ndarray,
     n_max: int,
     lambda_values: np.ndarray,
+    regularization: RegScheme = "identity",
+    reg_diag: np.ndarray | None = None,
     max_iter: int = 200,
     tol: float = 1e-8,
     x0: np.ndarray | None = None,
@@ -358,6 +488,12 @@ def compute_l_curve_tikhonov(
         Target maximum spherical harmonic degree.
     lambda_values : ndarray
         1D array of non-negative Tikhonov regularization values.
+    regularization : {"identity", "Manojs_scheme"}, default="identity"
+        Regularization matrix scheme ``R`` in
+        ``(J^T J + lambda_reg * R) c = J^T d``.
+    reg_diag : ndarray, optional
+        Optional user-provided diagonal of ``R``. If provided, overrides
+        ``regularization``.
     max_iter : int, default=200
         Maximum CG iterations for each lambda.
     tol : float, default=1e-8
@@ -401,6 +537,8 @@ def compute_l_curve_tikhonov(
             data=data,
             n_max=n_max,
             lambda_reg=float(lam),
+            regularization=regularization,
+            reg_diag=reg_diag,
             max_iter=max_iter,
             tol=tol,
             x0=x0,

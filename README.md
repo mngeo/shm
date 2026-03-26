@@ -94,20 +94,45 @@ res_reg = invert_gauss_coefficients_cg_tikhonov(
     data,
     n_max=8,
     lambda_reg=1000.0,
+    regularization="identity",  # or "Manojs_scheme"
     max_iter=200,
     tol=1e-8,
     use_cache=True,
 )
 print(res_reg.converged, res_reg.iterations, res_reg.final_relative_residual)
 
+# New weighted scheme:
+# L = diag((1:n_coeff)^2), R = L.T @ L = diag((1:n_coeff)^4)
+res_reg_weighted = invert_gauss_coefficients_cg_tikhonov(
+    data,
+    n_max=8,
+    lambda_reg=1000.0,
+    regularization="Manojs_scheme",
+)
+
 # L-curve for user-selected lambdas (plot can be switched off).
 solution_norm, residual_norm = compute_l_curve_tikhonov(
     data=data,
     n_max=8,
     lambda_values=np.array([0.0, 1.0, 10.0, 100.0, 1000.0]),
+    regularization="identity",
     plot=False,
 )
 print(solution_norm, residual_norm)
+```
+
+## Synthetic Inversion Tests
+- Test suite includes epoch `2020.0` synthetic recovery checks for both:
+  - `models/igrf14coeffs.txt`
+  - `models/WMM2025.COF`
+- Metric: RMS difference between recovered and original coefficient vectors.
+- Covered cases:
+  - clean synthetic data (near-zero RMS expected)
+  - 5% Gaussian noise (`sigma = 0.05 * abs(component)`)
+  - 10% Gaussian noise (`sigma = 0.10 * abs(component)`)
+- Run:
+```bash
+pytest -q tests/test_inversion.py
 ```
 
 ## Pipeline Reference (2020.0 + L-curve)
@@ -133,8 +158,10 @@ print(solution_norm, residual_norm)
 - `invert_gauss_coefficients_cg(...)` uses a cached Jacobian operator for
   `J @ v` and `J.T @ v` products when `use_cache=True`.
 - `invert_gauss_coefficients_cg_tikhonov(...)` is the explicit
-  Tikhonov-regularized API using ``(J^T J + lambda I) c = J^T d`` with
-  user-provided `lambda_reg`.
+  Tikhonov-regularized API using ``(J^T J + lambda R) c = J^T d`` with
+  user-provided `lambda_reg`, where `R` is selected by
+  `regularization` (`"identity"` or `"Manojs_scheme"`), or by
+  passing a custom diagonal via `reg_diag`.
 - `compute_l_curve_tikhonov(...)` returns
   ``(solution_norm, residual_norm)`` for a lambda array and can
   optionally plot the L-curve (`plot=True/False`).

@@ -55,13 +55,18 @@ user parameter:
        data=data,
        n_max=8,
        lambda_reg=1000.0,
-       max_iter=200,
-       tol=1e-8,
-       use_cache=True,
+        regularization="identity",  # or "Manojs_scheme"
+        max_iter=200,
+        tol=1e-8,
+        use_cache=True,
    )
 
    print(result_reg.converged)
    print(result_reg.final_relative_residual)
+
+``regularization="Manojs_scheme"`` uses
+``R = L^T L`` with ``L = diag((1:n_coeff)^2)`` in
+``(J^T J + lambda_reg * R) c = J^T d``.
 
 L-curve
 -------
@@ -77,6 +82,7 @@ plotting:
        data=data,
        n_max=8,
        lambda_values=np.array([0.0, 1.0, 10.0, 100.0, 1000.0]),
+       regularization="identity",
        plot=False,  # set True to generate log-log L-curve plot
    )
 
@@ -92,3 +98,13 @@ Practical Pipeline Notes
   L-curve.
 - Use ``plot=False`` in headless or CI environments and persist the returned
   norm arrays to text.
+
+Synthetic Recovery Tests
+------------------------
+
+The inversion test suite includes synthetic coefficient-recovery checks at
+epoch ``2020.0`` for both IGRF and WMM models, using RMS coefficient error:
+
+- clean synthetic data (expect near-zero RMS)
+- 5% Gaussian component noise
+- 10% Gaussian component noise

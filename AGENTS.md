@@ -45,10 +45,13 @@ operations and a matrix-form design-matrix approach.
     to coefficient vector `c` in order
     `[g10, g11, h11, g20, g21, h21, ...]`.
     `build_ned_jacobian` returns `∂[X,Y,Z]/∂c` (NOT a 3x3 rotation matrix).
-13. Regularized inversion uses Tikhonov with identity:
-    ``(J^T J + λI)c = J^T d``.
+13. Regularized inversion uses Tikhonov:
+    ``(J^T J + λR)c = J^T d``.
     User-facing regularized API: `invert_gauss_coefficients_cg_tikhonov`
-    with explicit `lambda_reg`.
+    with explicit `lambda_reg` and selectable `regularization`:
+    - `identity`: ``R = I``
+    - `Manojs_scheme`: ``R = L^T L``, ``L = diag((1:n_coeff)^2)``
+    Optional `reg_diag` may override both as a custom diagonal ``R``.
 14. L-curve evaluation must sweep user-provided lambda values and return
     both `||c||_2` (solution norm) and `||d - Jc||_2` (residual norm).
     Plotting must remain optional (`plot=True/False`) for headless runs.
@@ -97,6 +100,11 @@ operations and a matrix-form design-matrix approach.
 - Parametrize multi-point and single-point tests separately.
 - For new Jacobian code paths, include at least one finite-difference
   derivative test versus direct field evaluation.
+- Include synthetic inversion recovery tests at epoch `2020.0` for both
+  IGRF and WMM, using RMS coefficient difference as the metric:
+  - clean synthetic data (expect near-zero RMS)
+  - 5% Gaussian noise
+  - 10% Gaussian noise
 
 ## Documentation rules
 - Every module has a module-level docstring explaining its purpose.
@@ -150,8 +158,9 @@ operations and a matrix-form design-matrix approach.
 8. **Truncation must reindex:** When `truncate(n_new)` is called, rebuild the coefficient index array; do not just zero out the high-degree terms (zeros in c are not equivalent to a truncated model for the design-matrix column structure).
 
 9. **Regularization semantics:** Use `lambda_reg` only as
-   Tikhonov identity weight in coefficient space; do not alter Jacobian
-   column ordering or observation units when enabling regularization.
+   Tikhonov coefficient-space weight in ``(J^T J + λR)c = J^T d``;
+   do not alter Jacobian column ordering or observation units when
+   enabling regularization.
 
 10. **L-curve reproducibility:** For comparative lambda sweeps, keep
     preprocessing, geometry selection, and initial model settings fixed.

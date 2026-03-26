@@ -437,6 +437,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -459,6 +460,9 @@
     <span class="n">converged</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="n">final_relative_residual</span><span class="p">:</span> <span class="nb">float</span></div>
 
+
+
+<span class="n">RegScheme</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;identity&quot;</span><span class="p">,</span> <span class="s2">&quot;Manojs_scheme&quot;</span><span class="p">]</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_coeff_arrays_from_vector</span><span class="p">(</span><span class="n">c</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">n_max</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
@@ -486,6 +490,37 @@
         <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">g_vals</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
         <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">h_vals</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
     <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_regularization_diagonal</span><span class="p">(</span>
+    <span class="n">n_coeff</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">regularization</span><span class="p">:</span> <span class="n">RegScheme</span><span class="p">,</span>
+    <span class="n">reg_diag</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return diagonal entries of regularization matrix ``R``.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The regularized solve is:</span>
+<span class="sd">    ``(J^T J + lambda * R) c = J^T d``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">reg_diag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">diag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">reg_diag</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">diag</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">n_coeff</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;reg_diag must have length </span><span class="si">{</span><span class="n">n_coeff</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">diag</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;reg_diag must contain only finite values&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">diag</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;reg_diag must be non-negative&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">diag</span>
+
+    <span class="k">if</span> <span class="n">regularization</span> <span class="o">==</span> <span class="s2">&quot;identity&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_coeff</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">regularization</span> <span class="o">==</span> <span class="s2">&quot;Manojs_scheme&quot;</span><span class="p">:</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_coeff</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="c1"># L = diag((1:n_coeff)^2) -&gt; L^T L = diag((1:n_coeff)^4)</span>
+        <span class="k">return</span> <span class="n">idx</span><span class="o">**</span><span class="mi">4</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;regularization must be one of {&#39;identity&#39;, &#39;Manojs_scheme&#39;}&quot;</span><span class="p">)</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_CachedNEDJacobianOperator</span><span class="p">:</span>
@@ -731,13 +766,15 @@
     <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">n_max</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">lambda_reg</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">regularization</span><span class="p">:</span> <span class="n">RegScheme</span> <span class="o">=</span> <span class="s2">&quot;identity&quot;</span><span class="p">,</span>
+    <span class="n">reg_diag</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
     <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
     <span class="n">x0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">use_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">epoch_year</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CGInversionResult</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Invert NED observations with CG and Tikhonov ``lambda * I`` regularization.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Invert NED observations with CG and Tikhonov regularization.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -749,6 +786,15 @@
 <span class="sd">    lambda_reg : float</span>
 <span class="sd">        Tikhonov regularization weight ``lambda`` applied as</span>
 <span class="sd">        ``(J^T J + lambda I) c = J^T d``.</span>
+<span class="sd">    regularization : {&quot;identity&quot;, &quot;Manojs_scheme&quot;}, default=&quot;identity&quot;</span>
+<span class="sd">        Regularization matrix scheme ``R`` in</span>
+<span class="sd">        ``(J^T J + lambda_reg * R) c = J^T d``.</span>
+<span class="sd">        ``&quot;identity&quot;`` uses ``R = I``.</span>
+<span class="sd">        ``&quot;Manojs_scheme&quot;`` uses ``R = L^T L`` with</span>
+<span class="sd">        ``L = diag((1:n_coeff)^2)``.</span>
+<span class="sd">    reg_diag : ndarray, optional</span>
+<span class="sd">        Optional user-provided diagonal of ``R``. If provided, overrides</span>
+<span class="sd">        ``regularization``.</span>
 <span class="sd">    max_iter : int, default=200</span>
 <span class="sd">        Maximum CG iterations on normal equations.</span>
 <span class="sd">    tol : float, default=1e-8</span>
@@ -768,15 +814,97 @@
     <span class="k">if</span> <span class="n">lambda_reg</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;lambda_reg must be non-negative&quot;</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">invert_gauss_coefficients_cg</span><span class="p">(</span>
-        <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+    <span class="k">if</span> <span class="n">regularization</span> <span class="o">==</span> <span class="s2">&quot;identity&quot;</span> <span class="ow">and</span> <span class="n">reg_diag</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">invert_gauss_coefficients_cg</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">n_max</span><span class="o">=</span><span class="n">n_max</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+            <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
+            <span class="n">damping</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">lambda_reg</span><span class="p">),</span>
+            <span class="n">x0</span><span class="o">=</span><span class="n">x0</span><span class="p">,</span>
+            <span class="n">use_cache</span><span class="o">=</span><span class="n">use_cache</span><span class="p">,</span>
+            <span class="n">epoch_year</span><span class="o">=</span><span class="n">epoch_year</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">7</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;data must have shape (N, 7): [MJD2000,gc_lat,lon,r,X,Y,Z]&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">n_max</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;n_max must be positive&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">max_iter</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;max_iter must be positive&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">tol</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;tol must be positive&quot;</span><span class="p">)</span>
+
+    <span class="n">gc_lat_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">arr</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">lon_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">arr</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">])</span>
+    <span class="n">r_km</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">d_obs</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">op</span> <span class="o">=</span> <span class="n">_CachedNEDJacobianOperator</span><span class="p">(</span><span class="n">gc_lat_rad</span><span class="p">,</span> <span class="n">lon_rad</span><span class="p">,</span> <span class="n">r_km</span><span class="p">,</span> <span class="n">n_max</span><span class="o">=</span><span class="n">n_max</span><span class="p">,</span> <span class="n">use_cache</span><span class="o">=</span><span class="n">use_cache</span><span class="p">)</span>
+    <span class="n">n_coeff</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">n_coeff</span>
+    <span class="n">reg_d</span> <span class="o">=</span> <span class="n">_regularization_diagonal</span><span class="p">(</span><span class="n">n_coeff</span><span class="p">,</span> <span class="n">regularization</span><span class="o">=</span><span class="n">regularization</span><span class="p">,</span> <span class="n">reg_diag</span><span class="o">=</span><span class="n">reg_diag</span><span class="p">)</span>
+
+    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_coeff</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="k">if</span> <span class="n">x0</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">n_coeff</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;x0 must have length </span><span class="si">{</span><span class="n">n_coeff</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">normal_matvec</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">op</span><span class="o">.</span><span class="n">rmatvec</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">matvec</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">lambda_reg</span><span class="p">)</span> <span class="o">*</span> <span class="n">reg_d</span> <span class="o">*</span> <span class="n">v</span>
+
+    <span class="n">b</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">rmatvec</span><span class="p">(</span><span class="n">d_obs</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">b</span> <span class="o">-</span> <span class="n">normal_matvec</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">rr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">r</span> <span class="o">@</span> <span class="n">r</span><span class="p">)</span>
+    <span class="n">b_norm</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">b</span><span class="p">))</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">tol</span> <span class="o">*</span> <span class="p">(</span><span class="n">b_norm</span> <span class="k">if</span> <span class="n">b_norm</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">converged</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_iter</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">ap</span> <span class="o">=</span> <span class="n">normal_matvec</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">denom</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span> <span class="o">@</span> <span class="n">ap</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">denom</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">):</span>
+            <span class="n">iterations</span> <span class="o">=</span> <span class="n">it</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="k">break</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="n">rr</span> <span class="o">/</span> <span class="n">denom</span>
+        <span class="n">c</span> <span class="o">+=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">p</span>
+        <span class="n">r</span> <span class="o">-=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">ap</span>
+        <span class="n">rr_new</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">r</span> <span class="o">@</span> <span class="n">r</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">rr_new</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">target</span><span class="p">:</span>
+            <span class="n">converged</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">rr</span> <span class="o">=</span> <span class="n">rr_new</span>
+            <span class="n">iterations</span> <span class="o">=</span> <span class="n">it</span>
+            <span class="k">break</span>
+        <span class="n">beta</span> <span class="o">=</span> <span class="n">rr_new</span> <span class="o">/</span> <span class="n">rr</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="n">beta</span> <span class="o">*</span> <span class="n">p</span>
+        <span class="n">rr</span> <span class="o">=</span> <span class="n">rr_new</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">iterations</span> <span class="o">=</span> <span class="n">max_iter</span>
+
+    <span class="n">predicted</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">matvec</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">residual</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">-</span> <span class="n">predicted</span>
+    <span class="n">rel_res</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">rr</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">b_norm</span> <span class="k">if</span> <span class="n">b_norm</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">epoch_year</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">epoch_year</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">mjd2000_to_decimal_year</span><span class="p">(</span><span class="n">arr</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])))</span>
+    <span class="n">n_array</span><span class="p">,</span> <span class="n">m_array</span><span class="p">,</span> <span class="n">g_vals</span><span class="p">,</span> <span class="n">h_vals</span> <span class="o">=</span> <span class="n">_coeff_arrays_from_vector</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">n_max</span><span class="p">)</span>
+    <span class="n">coeff</span> <span class="o">=</span> <span class="n">GaussCoefficients</span><span class="p">(</span>
+        <span class="n">epoch</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">epoch_year</span><span class="p">),</span>
         <span class="n">n_max</span><span class="o">=</span><span class="n">n_max</span><span class="p">,</span>
-        <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
-        <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
-        <span class="n">damping</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">lambda_reg</span><span class="p">),</span>
-        <span class="n">x0</span><span class="o">=</span><span class="n">x0</span><span class="p">,</span>
-        <span class="n">use_cache</span><span class="o">=</span><span class="n">use_cache</span><span class="p">,</span>
-        <span class="n">epoch_year</span><span class="o">=</span><span class="n">epoch_year</span><span class="p">,</span>
+        <span class="n">n_array</span><span class="o">=</span><span class="n">n_array</span><span class="p">,</span>
+        <span class="n">m_array</span><span class="o">=</span><span class="n">m_array</span><span class="p">,</span>
+        <span class="n">g</span><span class="o">=</span><span class="n">g_vals</span><span class="p">,</span>
+        <span class="n">h</span><span class="o">=</span><span class="n">h_vals</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">CGInversionResult</span><span class="p">(</span>
+        <span class="n">coefficient_vector</span><span class="o">=</span><span class="n">c</span><span class="p">,</span>
+        <span class="n">coefficients</span><span class="o">=</span><span class="n">coeff</span><span class="p">,</span>
+        <span class="n">predicted_xyz</span><span class="o">=</span><span class="n">predicted</span><span class="p">,</span>
+        <span class="n">residual_xyz</span><span class="o">=</span><span class="n">residual</span><span class="p">,</span>
+        <span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">,</span>
+        <span class="n">converged</span><span class="o">=</span><span class="n">converged</span><span class="p">,</span>
+        <span class="n">final_relative_residual</span><span class="o">=</span><span class="n">rel_res</span><span class="p">,</span>
     <span class="p">)</span></div>
 
 
@@ -787,6 +915,8 @@
     <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">n_max</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">lambda_values</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">regularization</span><span class="p">:</span> <span class="n">RegScheme</span> <span class="o">=</span> <span class="s2">&quot;identity&quot;</span><span class="p">,</span>
+    <span class="n">reg_diag</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
     <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
     <span class="n">x0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -806,6 +936,12 @@
 <span class="sd">        Target maximum spherical harmonic degree.</span>
 <span class="sd">    lambda_values : ndarray</span>
 <span class="sd">        1D array of non-negative Tikhonov regularization values.</span>
+<span class="sd">    regularization : {&quot;identity&quot;, &quot;Manojs_scheme&quot;}, default=&quot;identity&quot;</span>
+<span class="sd">        Regularization matrix scheme ``R`` in</span>
+<span class="sd">        ``(J^T J + lambda_reg * R) c = J^T d``.</span>
+<span class="sd">    reg_diag : ndarray, optional</span>
+<span class="sd">        Optional user-provided diagonal of ``R``. If provided, overrides</span>
+<span class="sd">        ``regularization``.</span>
 <span class="sd">    max_iter : int, default=200</span>
 <span class="sd">        Maximum CG iterations for each lambda.</span>
 <span class="sd">    tol : float, default=1e-8</span>
@@ -849,6 +985,8 @@
             <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
             <span class="n">n_max</span><span class="o">=</span><span class="n">n_max</span><span class="p">,</span>
             <span class="n">lambda_reg</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">lam</span><span class="p">),</span>
+            <span class="n">regularization</span><span class="o">=</span><span class="n">regularization</span><span class="p">,</span>
+            <span class="n">reg_diag</span><span class="o">=</span><span class="n">reg_diag</span><span class="p">,</span>
             <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
             <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
             <span class="n">x0</span><span class="o">=</span><span class="n">x0</span><span class="p">,</span>
