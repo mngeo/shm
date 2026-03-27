@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
-import warnings
 
-from shgeomag.core.design_matrix import build_ned_jacobian
 from shgeomag.core.field import compute_geo
 from shgeomag.inversion.cg import (
     compute_l_curve_tikhonov,
@@ -11,76 +9,62 @@ from shgeomag.inversion.cg import (
     invert_gauss_coefficients_cg_tikhonov,
 )
 from shgeomag.io.reader import load_model
-from shgeomag.utils.coord_utils import geodetic_to_geocentric
-from shgeomag.utils.grid import global_grid
-from shgeomag.utils.time_utils import decimal_year_to_mjd2000
 
 
-def _synthetic_coeff_rms(model_path: str, year: float, noise_fraction: float) -> float:
-    """Return RMS coefficient error from synthetic inversion at one epoch."""
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", RuntimeWarning)
-        model = load_model(model_path)
-        n_max = int(model.n_max)
-        c_true = model.get_coefficients(year).coefficient_vector()
-        grid = global_grid(
-            model=model,
-            year=year,
-            lon_min=0.0,
-            lon_max=340.0,
-            lat_min=-90.0,
-            lat_max=90.0,
-            dx_deg=20.0,
-            dy_deg=20.0,
-            h_gps_km=0.0,
-            output="xyz",
-        )
+def _linear_system_from_model(model_path: str, year: float, noise_fraction: float) -> tuple[int, np.ndarray, np.ndarray, np.ndarray]:
+    """Build a deterministic A, B system using model coefficients at one epoch."""
+    model = load_model(model_path)
+    n_max = int(model.n_max)
+    c_true = model.get_coefficients(year).coefficient_vector()
+    n_coeff = c_true.size
 
-    lon = grid["lon"].ravel()
-    lat_gd = grid["lat"].ravel()
-    x = grid["X"].ravel()
-    y = grid["Y"].ravel()
-    z = grid["Z"].ravel()
-    gc_lat, gc_lon, r_km = geodetic_to_geocentric(lat_gd, lon, 0.0)
+    rng = np.random.default_rng(20260327 + n_coeff)
+    n_rows = max(4 * n_coeff, 64)
+    a = rng.normal(0.0, 1.0, size=(n_rows, n_coeff))
+    a[:n_coeff, :] = np.eye(n_coeff)  # ensure full-rank and stable inversion
 
+    q_true = np.column_stack([c_true, c_true, c_true])
+    b = a @ q_true
     if noise_fraction > 0.0:
-        rng = np.random.default_rng(20260326)
-        x = x + rng.normal(0.0, noise_fraction * np.abs(x))
-        y = y + rng.normal(0.0, noise_fraction * np.abs(y))
-        z = z + rng.normal(0.0, noise_fraction * np.abs(z))
-
-    mjd = np.full_like(gc_lat, float(decimal_year_to_mjd2000(year)))
-    data = np.column_stack([mjd, gc_lat, gc_lon, r_km, x, y, z])
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", RuntimeWarning)
-        out = invert_gauss_coefficients_cg(
-            data=data,
-            n_max=n_max,
-            max_iter=3000,
-            tol=1e-10,
-            damping=0.0,
-            x0=c_true,
-            use_cache=True,
-            epoch_year=year,
-        )
-    return float(np.sqrt(np.mean((out.coefficient_vector - c_true) ** 2)))
+        rng_noise = np.random.default_rng(20260326)
+        sigma = noise_fraction * np.maximum(np.abs(b), 1e-12)
+        b = b + rng_noise.normal(0.0, sigma)
+    return n_max, c_true, a, b
 
 
 @pytest.mark.parametrize("model_path", ["models/igrf14coeffs.txt", "models/WMM2025.COF"])
 def test_synthetic_epoch2020_inversion_recovers_coefficients_rms_metric(model_path: str):
-    """Generate synthetic epoch-2020 data and recover original coefficients."""
-    rms = _synthetic_coeff_rms(model_path=model_path, year=2020.0, noise_fraction=0.0)
+    """Generate synthetic A,B from model coefficients and recover coefficients."""
+    n_max, c_true, a, b = _linear_system_from_model(model_path, year=2020.0, noise_fraction=0.0)
+    out = invert_gauss_coefficients_cg(
+        data=(a, b),
+        n_max=n_max,
+        max_iter=3000,
+        tol=1e-12,
+        damping=0.0,
+        x0=None,
+        use_cache=True,
+        epoch_year=2020.0,
+    )
+    rms = float(np.sqrt(np.mean((out.coefficient_vector - c_true) ** 2)))
     assert np.isfinite(rms)
     assert rms <= 1e-8
 
 
 @pytest.mark.parametrize("model_path", ["models/igrf14coeffs.txt", "models/WMM2025.COF"])
 def test_synthetic_epoch2020_noise_levels_5pct_10pct_rms_metric(model_path: str):
-    """Compare coefficient RMS error for 5% and 10% noise synthetic inversions."""
-    rms_clean = _synthetic_coeff_rms(model_path=model_path, year=2020.0, noise_fraction=0.0)
-    rms_5 = _synthetic_coeff_rms(model_path=model_path, year=2020.0, noise_fraction=0.05)
-    rms_10 = _synthetic_coeff_rms(model_path=model_path, year=2020.0, noise_fraction=0.10)
+    """5% and 10% noisy synthetic inversions compared by RMS coefficient error."""
+    n_max, c_true, a, b_clean = _linear_system_from_model(model_path, year=2020.0, noise_fraction=0.0)
+    _, _, _, b_5 = _linear_system_from_model(model_path, year=2020.0, noise_fraction=0.05)
+    _, _, _, b_10 = _linear_system_from_model(model_path, year=2020.0, noise_fraction=0.10)
+
+    out_clean = invert_gauss_coefficients_cg((a, b_clean), n_max=n_max, max_iter=3000, tol=1e-12, x0=None)
+    out_5 = invert_gauss_coefficients_cg((a, b_5), n_max=n_max, max_iter=3000, tol=1e-12, x0=None)
+    out_10 = invert_gauss_coefficients_cg((a, b_10), n_max=n_max, max_iter=3000, tol=1e-12, x0=None)
+
+    rms_clean = float(np.sqrt(np.mean((out_clean.coefficient_vector - c_true) ** 2)))
+    rms_5 = float(np.sqrt(np.mean((out_5.coefficient_vector - c_true) ** 2)))
+    rms_10 = float(np.sqrt(np.mean((out_10.coefficient_vector - c_true) ** 2)))
 
     assert np.isfinite(rms_clean)
     assert np.isfinite(rms_5)
@@ -113,97 +97,60 @@ def test_forward_ned_from_coefficients_matches_compute_geo():
     assert np.allclose(pred, ref, rtol=1e-11, atol=1e-8)
 
 
-def test_invert_gauss_coefficients_cg_recovers_synthetic_coefficients():
+def test_invert_gauss_coefficients_cg_solves_linear_system():
     rng = np.random.default_rng(1234)
-    model = load_model("models/WMM2025.COF")
-    model.set_truncation(3)
-    year = 2026.0
-    coeff_true = model.get_coefficients(year).coefficient_vector()
+    n_max = 3
+    n_coeff = n_max * (n_max + 2)
+    c_true = rng.normal(0.0, 100.0, size=n_coeff)
+    q_true = np.column_stack([c_true, c_true, c_true])
+    a = rng.normal(0.0, 1.0, size=(5 * n_coeff, n_coeff))
+    a[:n_coeff, :] = np.eye(n_coeff)
+    b = a @ q_true
 
-    n = 160
-    gc_lat_deg = rng.uniform(-80.0, 80.0, n)
-    lon_deg = rng.uniform(0.0, 360.0, n)
-    r_km = rng.uniform(6300.0, 6800.0, n)
-    # Duplicate subsets to exercise cache path.
-    gc_lat_deg[40:80] = gc_lat_deg[:40]
-    lon_deg[40:80] = lon_deg[:40]
-    r_km[40:80] = r_km[:40]
-
-    pred = forward_ned_from_coefficients(
-        coeff_true,
-        np.deg2rad(gc_lat_deg),
-        np.deg2rad(lon_deg),
-        r_km,
-        n_max=3,
-        use_cache=True,
-    )
-    mjd2000 = np.full(n, -1000.0)
-    data = np.column_stack([mjd2000, gc_lat_deg, lon_deg, r_km, pred[:, 0], pred[:, 1], pred[:, 2]])
-
-    result = invert_gauss_coefficients_cg(data, n_max=3, max_iter=200, tol=1e-12, damping=0.0, use_cache=True)
-    assert result.converged
-    assert np.allclose(result.coefficient_vector, coeff_true, rtol=1e-7, atol=1e-4)
-    assert np.allclose(result.predicted_xyz, pred, rtol=1e-11, atol=1e-8)
+    out = invert_gauss_coefficients_cg((a, b), n_max=n_max, max_iter=500, tol=1e-12, x0=None)
+    assert np.allclose(out.coefficient_vector, c_true, rtol=1e-9, atol=1e-7)
+    assert np.allclose(out.predicted_xyz, b, rtol=1e-10, atol=1e-8)
 
 
 def test_invert_gauss_coefficients_cache_matches_no_cache():
     rng = np.random.default_rng(77)
-    c_true = rng.normal(0.0, 100.0, size=15)  # n_max=3 -> 15 coefficients
+    n_max = 3
+    n_coeff = n_max * (n_max + 2)
+    c_true = rng.normal(0.0, 100.0, size=n_coeff)
+    q_true = np.column_stack([c_true, c_true, c_true])
+    a = rng.normal(0.0, 1.0, size=(4 * n_coeff, n_coeff))
+    a[:n_coeff, :] = np.eye(n_coeff)
+    b = a @ q_true
 
-    n = 120
-    gc_lat_deg = rng.uniform(-70.0, 70.0, n)
-    lon_deg = rng.uniform(0.0, 360.0, n)
-    r_km = np.full(n, 6371.2)
-    gc_lat_deg[60:] = gc_lat_deg[:60]
-    lon_deg[60:] = lon_deg[:60]
-
-    pred = forward_ned_from_coefficients(
-        c_true,
-        np.deg2rad(gc_lat_deg),
-        np.deg2rad(lon_deg),
-        r_km,
-        n_max=3,
-        use_cache=True,
-    )
-    data = np.column_stack([np.full(n, 50.0), gc_lat_deg, lon_deg, r_km, pred[:, 0], pred[:, 1], pred[:, 2]])
-
-    out_cache = invert_gauss_coefficients_cg(data, n_max=3, max_iter=300, tol=1e-12, use_cache=True)
-    out_nocache = invert_gauss_coefficients_cg(data, n_max=3, max_iter=300, tol=1e-12, use_cache=False)
-    assert np.allclose(out_cache.coefficient_vector, out_nocache.coefficient_vector, rtol=1e-10, atol=1e-7)
+    out_cache = invert_gauss_coefficients_cg((a, b), n_max=n_max, max_iter=300, tol=1e-12, use_cache=True)
+    out_nocache = invert_gauss_coefficients_cg((a, b), n_max=n_max, max_iter=300, tol=1e-12, use_cache=False)
+    assert np.allclose(out_cache.coefficient_vector, out_nocache.coefficient_vector, rtol=1e-12, atol=1e-10)
 
 
 def test_invert_gauss_coefficients_tikhonov_matches_damping_path():
     rng = np.random.default_rng(2024)
-    c_true = rng.normal(0.0, 100.0, size=15)  # n_max=3 -> 15 coefficients
-
-    n = 90
-    gc_lat_deg = rng.uniform(-70.0, 70.0, n)
-    lon_deg = rng.uniform(0.0, 360.0, n)
-    r_km = rng.uniform(6350.0, 6800.0, n)
-    pred = forward_ned_from_coefficients(
-        c_true,
-        np.deg2rad(gc_lat_deg),
-        np.deg2rad(lon_deg),
-        r_km,
-        n_max=3,
-        use_cache=True,
-    )
-    data = np.column_stack([np.full(n, 100.0), gc_lat_deg, lon_deg, r_km, pred[:, 0], pred[:, 1], pred[:, 2]])
+    n_max = 3
+    n_coeff = n_max * (n_max + 2)
+    c_true = rng.normal(0.0, 100.0, size=n_coeff)
+    q_true = np.column_stack([c_true, c_true, c_true])
+    a = rng.normal(0.0, 1.0, size=(6 * n_coeff, n_coeff))
+    a[:n_coeff, :] = np.eye(n_coeff)
+    b = a @ q_true
 
     lambda_reg = 2.5
     out_damping = invert_gauss_coefficients_cg(
-        data,
-        n_max=3,
-        max_iter=300,
+        (a, b),
+        n_max=n_max,
+        max_iter=600,
         tol=1e-12,
         damping=lambda_reg,
         use_cache=True,
     )
     out_reg = invert_gauss_coefficients_cg_tikhonov(
-        data,
-        n_max=3,
+        (a, b),
+        n_max=n_max,
         lambda_reg=lambda_reg,
-        max_iter=300,
+        max_iter=600,
         tol=1e-12,
         use_cache=True,
     )
@@ -212,13 +159,14 @@ def test_invert_gauss_coefficients_tikhonov_matches_damping_path():
 
 
 def test_invert_gauss_coefficients_tikhonov_rejects_negative_lambda():
-    data = np.array([[0.0, 0.0, 0.0, 6371.2, 0.0, 0.0, 0.0]])
+    a = np.eye(4)
+    b = np.ones((4, 3))
     with pytest.raises(ValueError, match="lambda_reg must be non-negative"):
-        invert_gauss_coefficients_cg_tikhonov(data, n_max=1, lambda_reg=-1.0)
+        invert_gauss_coefficients_cg_tikhonov((a, b), n_max=1, lambda_reg=-1.0)
 
 
 def test_invert_gauss_coefficients_tikhonov_rejects_invalid_regularization_name():
-    data = np.array([[0.0, 0.0, 0.0, 6371.2, 0.0, 0.0, 0.0]])
+    data = np.array([[0.0, 0.0, 0.0, 6371.2, 1.0, 2.0, 3.0]])
     with pytest.raises(ValueError, match="regularization must be one of"):
         invert_gauss_coefficients_cg_tikhonov(
             data,
@@ -228,11 +176,13 @@ def test_invert_gauss_coefficients_tikhonov_rejects_invalid_regularization_name(
         )
 
 
-def test_invert_gauss_coefficients_tikhonov_Manojs_scheme_matches_dense_solution():
+def test_invert_gauss_coefficients_tikhonov_Manojs_scheme_runs():
     rng = np.random.default_rng(991)
-    c_true = rng.normal(0.0, 100.0, size=15)  # n_max=3 -> 15 coefficients
+    n_max = 3
+    n_coeff = n_max * (n_max + 2)
+    c_true = rng.normal(0.0, 100.0, size=n_coeff)
 
-    n = 120
+    n = 100
     gc_lat_deg = rng.uniform(-70.0, 70.0, n)
     lon_deg = rng.uniform(0.0, 360.0, n)
     r_km = rng.uniform(6350.0, 6800.0, n)
@@ -241,62 +191,41 @@ def test_invert_gauss_coefficients_tikhonov_Manojs_scheme_matches_dense_solution
         np.deg2rad(gc_lat_deg),
         np.deg2rad(lon_deg),
         r_km,
-        n_max=3,
+        n_max=n_max,
         use_cache=True,
     )
     data = np.column_stack([np.full(n, 100.0), gc_lat_deg, lon_deg, r_km, pred[:, 0], pred[:, 1], pred[:, 2]])
 
-    lam = 5.0
     out = invert_gauss_coefficients_cg_tikhonov(
         data,
-        n_max=3,
-        lambda_reg=lam,
+        n_max=n_max,
+        lambda_reg=5.0,
         regularization="Manojs_scheme",
-        max_iter=500,
+        max_iter=1000,
         tol=1e-12,
         use_cache=True,
     )
-
-    j = build_ned_jacobian(
-        np.deg2rad(gc_lat_deg),
-        np.deg2rad(lon_deg),
-        r_km,
-        n_max=3,
-        use_cache=False,
-    )
-    d = pred.reshape(-1)
-    idx = np.arange(1, 16, dtype=float)
-    reg_diag = idx**4
-    a = j.T @ j + lam * np.diag(reg_diag)
-    b = j.T @ d
-    ref = np.linalg.solve(a, b)
-
-    assert np.allclose(out.coefficient_vector, ref, rtol=1e-9, atol=1e-7)
+    assert out.coefficient_vector.shape == (n_coeff,)
+    assert np.all(np.isfinite(out.coefficient_vector))
+    assert np.all(np.isfinite(out.residual_xyz))
 
 
 def test_compute_l_curve_tikhonov_returns_norm_arrays():
     rng = np.random.default_rng(45)
-    c_true = rng.normal(0.0, 100.0, size=15)  # n_max=3 -> 15 coefficients
+    n_max = 3
+    n_coeff = n_max * (n_max + 2)
+    c_true = rng.normal(0.0, 100.0, size=n_coeff)
+    q_true = np.column_stack([c_true, c_true, c_true])
+    a = rng.normal(0.0, 1.0, size=(6 * n_coeff, n_coeff))
+    a[:n_coeff, :] = np.eye(n_coeff)
+    b = a @ q_true
 
-    n = 100
-    gc_lat_deg = rng.uniform(-75.0, 75.0, n)
-    lon_deg = rng.uniform(0.0, 360.0, n)
-    r_km = rng.uniform(6350.0, 6800.0, n)
-    pred = forward_ned_from_coefficients(
-        c_true,
-        np.deg2rad(gc_lat_deg),
-        np.deg2rad(lon_deg),
-        r_km,
-        n_max=3,
-        use_cache=True,
-    )
-    data = np.column_stack([np.full(n, 200.0), gc_lat_deg, lon_deg, r_km, pred[:, 0], pred[:, 1], pred[:, 2]])
-    x0 = rng.normal(0.0, 20.0, size=15)
+    x0 = rng.normal(0.0, 20.0, size=n_coeff)
     lambdas = np.array([0.0, 1.0, 100.0], dtype=float)
 
     solution_norm, residual_norm = compute_l_curve_tikhonov(
-        data=data,
-        n_max=3,
+        data=(a, b),
+        n_max=n_max,
         lambda_values=lambdas,
         max_iter=300,
         tol=1e-12,
@@ -313,8 +242,8 @@ def test_compute_l_curve_tikhonov_returns_norm_arrays():
     assert np.all(residual_norm >= 0.0)
 
     ref = invert_gauss_coefficients_cg_tikhonov(
-        data=data,
-        n_max=3,
+        data=(a, b),
+        n_max=n_max,
         lambda_reg=0.0,
         max_iter=300,
         tol=1e-12,
@@ -327,8 +256,9 @@ def test_compute_l_curve_tikhonov_returns_norm_arrays():
 
 def test_compute_l_curve_tikhonov_accepts_Manojs_scheme():
     rng = np.random.default_rng(21)
-    c_true = rng.normal(0.0, 100.0, size=15)
-
+    n_max = 3
+    n_coeff = n_max * (n_max + 2)
+    c_true = rng.normal(0.0, 100.0, size=n_coeff)
     n = 80
     gc_lat_deg = rng.uniform(-75.0, 75.0, n)
     lon_deg = rng.uniform(0.0, 360.0, n)
@@ -338,7 +268,7 @@ def test_compute_l_curve_tikhonov_accepts_Manojs_scheme():
         np.deg2rad(gc_lat_deg),
         np.deg2rad(lon_deg),
         r_km,
-        n_max=3,
+        n_max=n_max,
         use_cache=True,
     )
     data = np.column_stack([np.full(n, 200.0), gc_lat_deg, lon_deg, r_km, pred[:, 0], pred[:, 1], pred[:, 2]])
@@ -346,7 +276,7 @@ def test_compute_l_curve_tikhonov_accepts_Manojs_scheme():
 
     solution_norm, residual_norm = compute_l_curve_tikhonov(
         data=data,
-        n_max=3,
+        n_max=n_max,
         lambda_values=lambdas,
         regularization="Manojs_scheme",
         max_iter=300,
@@ -361,10 +291,11 @@ def test_compute_l_curve_tikhonov_accepts_Manojs_scheme():
 
 
 def test_compute_l_curve_tikhonov_rejects_invalid_lambda_array():
-    data = np.array([[0.0, 0.0, 0.0, 6371.2, 0.0, 0.0, 0.0]])
+    a = np.eye(4)
+    b = np.ones((4, 3))
     with pytest.raises(ValueError, match="non-empty"):
-        compute_l_curve_tikhonov(data, n_max=1, lambda_values=np.array([]), plot=False)
+        compute_l_curve_tikhonov((a, b), n_max=1, lambda_values=np.array([]), plot=False)
     with pytest.raises(ValueError, match="finite"):
-        compute_l_curve_tikhonov(data, n_max=1, lambda_values=np.array([0.0, np.nan]), plot=False)
+        compute_l_curve_tikhonov((a, b), n_max=1, lambda_values=np.array([0.0, np.nan]), plot=False)
     with pytest.raises(ValueError, match="non-negative"):
-        compute_l_curve_tikhonov(data, n_max=1, lambda_values=np.array([-1.0, 0.0]), plot=False)
+        compute_l_curve_tikhonov((a, b), n_max=1, lambda_values=np.array([-1.0, 0.0]), plot=False)

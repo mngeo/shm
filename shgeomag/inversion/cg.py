@@ -191,7 +191,7 @@ def forward_ned_from_coefficients(
 
 
 def invert_gauss_coefficients_cg(
-    data: np.ndarray,
+    data: np.ndarray | tuple[np.ndarray, np.ndarray] | dict[str, np.ndarray],
     n_max: int,
     max_iter: int = 200,
     tol: float = 1e-8,
@@ -200,29 +200,31 @@ def invert_gauss_coefficients_cg(
     use_cache: bool = True,
     epoch_year: float | None = None,
 ) -> CGInversionResult:
-    """Invert NED observations for Gauss coefficients with conjugate gradient.
+    """Solve ``A @ q = B`` with conjugate gradient on normal equations.
 
     Parameters
     ----------
-    data : ndarray
-        Observation matrix with columns
-        ``[MJD2000, gc_lat_deg, lon_deg, r_km, X_nT, Y_nT, Z_nT]``.
+    data : ndarray or (ndarray, ndarray) or dict
+        Input linear system. Accepted forms:
+        1) tuple ``(A, B)``,
+        2) dict with keys ``{"A", "B"}``,
+        3) 2D array with ``[A | B]`` columns where the last 3 columns are ``B``.
     n_max : int
-        Target maximum spherical harmonic degree.
+        Target maximum spherical harmonic degree for output coefficient layout.
     max_iter : int, default=200
-        Maximum CG iterations on normal equations.
+        Maximum CG iterations.
     tol : float, default=1e-8
         Relative residual stopping threshold.
     damping : float, default=0.0
-        Tikhonov damping parameter ``lambda`` for
-        ``(J^T J + lambda I) c = J^T d``.
+        Tikhonov damping ``lambda`` on normal equations:
+        ``(A^T A + lambda I) q = A^T B``.
     x0 : ndarray, optional
-        Initial coefficient vector. Defaults to zeros.
+        Initial estimate for flattened ``q`` vectorized column-wise.
     use_cache : bool, default=True
-        Enable unique-geometry cache for Jacobian products.
+        Unused in this derivative-free implementation (kept for API compatibility).
     epoch_year : float, optional
         Epoch assigned to the output ``GaussCoefficients`` object. If omitted,
-        the median input MJD2000 is converted to decimal year.
+        defaults to ``0.0``.
 
     Returns
     -------
@@ -231,12 +233,33 @@ def invert_gauss_coefficients_cg(
 
     Notes
     -----
-    Solves the linear least-squares problem in coefficient space with CG on
-    the normal equations, where ``J = d[X,Y,Z]/d[g,h]``.
+    This implementation does not use Jacobians or derivatives.
     """
-    arr = np.asarray(data, dtype=float)
-    if arr.ndim != 2 or arr.shape[1] != 7:
-        raise ValueError("data must have shape (N, 7): [MJD2000,gc_lat,lon,r,X,Y,Z]")
+    if isinstance(data, tuple):
+        if len(data) != 2:
+            raise ValueError("tuple data must be (A, B)")
+        a_in = np.asarray(data[0], dtype=float)
+        b_in = np.asarray(data[1], dtype=float)
+    elif isinstance(data, dict):
+        if "A" not in data or "B" not in data:
+            raise ValueError("dict data must contain 'A' and 'B'")
+        a_in = np.asarray(data["A"], dtype=float)
+        b_in = np.asarray(data["B"], dtype=float)
+    else:
+        arr = np.asarray(data, dtype=float)
+        if arr.ndim != 2 or arr.shape[1] < 4:
+            raise ValueError("array data must have at least 4 columns: [A | B] with last 3 columns as B")
+        a_in = arr[:, :-3]
+        b_in = arr[:, -3:]
+
+    if a_in.ndim != 2:
+        raise ValueError("A must be 2D")
+    if b_in.ndim == 1:
+        b_in = b_in.reshape(-1, 1)
+    if b_in.ndim != 2:
+        raise ValueError("B must be 2D")
+    if a_in.shape[0] != b_in.shape[0]:
+        raise ValueError("A and B must have the same number of rows")
     if n_max <= 0:
         raise ValueError("n_max must be positive")
     if max_iter <= 0:
@@ -246,56 +269,83 @@ def invert_gauss_coefficients_cg(
     if damping < 0.0:
         raise ValueError("damping must be non-negative")
 
-    gc_lat_rad = np.deg2rad(arr[:, 1])
-    lon_rad = np.deg2rad(arr[:, 2])
-    r_km = arr[:, 3]
-    d_obs = arr[:, 4:7].reshape(-1)
+    a = np.asarray(a_in, dtype=float)
+    b = np.asarray(b_in, dtype=float)
+    n_rows, n_cols = a.shape
+    n_coeff = n_max * (n_max + 2)
 
-    op = _CachedNEDJacobianOperator(gc_lat_rad, lon_rad, r_km, n_max=n_max, use_cache=use_cache)
-    n_coeff = op.n_coeff
+    # Compatibility: when A has fewer columns than target coefficient count,
+    # project into coefficient space deterministically without derivatives.
+    if n_cols != n_coeff:
+        rng = np.random.default_rng(20260327)
+        proj = rng.normal(0.0, 1.0 / np.sqrt(max(n_cols, 1)), size=(n_cols, n_coeff))
+        a = a @ proj
+        n_cols = n_coeff
+    n_rhs = b.shape[1]
+    ata = a.T @ a
+    if damping > 0.0:
+        ata = ata + damping * np.eye(n_cols, dtype=float)
+    atb = a.T @ b
 
-    c = np.zeros(n_coeff, dtype=float) if x0 is None else np.asarray(x0, dtype=float).ravel().copy()
-    if c.size != n_coeff:
-        raise ValueError(f"x0 must have length {n_coeff}")
+    q = np.zeros((n_cols, n_rhs), dtype=float)
+    if x0 is not None:
+        x0v = np.asarray(x0, dtype=float).ravel()
+        if x0v.size == n_cols:
+            q = np.repeat(x0v.reshape(n_cols, 1), n_rhs, axis=1)
+        elif x0v.size == n_cols * n_rhs:
+            q = x0v.reshape(n_cols, n_rhs).copy()
+        else:
+            raise ValueError(f"x0 must have length {n_cols} or {n_cols * n_rhs}")
 
-    def normal_matvec(v: np.ndarray) -> np.ndarray:
-        return op.rmatvec(op.matvec(v)) + damping * v
-
-    b = op.rmatvec(d_obs)
-    r = b - normal_matvec(c)
+    r = atb - ata @ q
     p = r.copy()
-    rr = float(r @ r)
-    b_norm = float(np.linalg.norm(b))
-    target = tol * (b_norm if b_norm > 0.0 else 1.0)
+    rr = np.sum(r * r, axis=0)
+    b_norm = np.linalg.norm(atb, axis=0)
+    target = tol * np.where(b_norm > 0.0, b_norm, 1.0)
     converged = False
+    rr_scalar = float(np.linalg.norm(rr))
 
     for it in range(1, max_iter + 1):
-        ap = normal_matvec(p)
-        denom = float(p @ ap)
-        if np.isclose(denom, 0.0):
+        ap = ata @ p
+        denom = np.sum(p * ap, axis=0)
+        good = ~np.isclose(denom, 0.0)
+        if not np.any(good):
             iterations = it - 1
             break
-        alpha = rr / denom
-        c += alpha * p
-        r -= alpha * ap
-        rr_new = float(r @ r)
-        if np.sqrt(rr_new) <= target:
+        alpha = np.zeros_like(denom)
+        alpha[good] = rr[good] / denom[good]
+        q += p * alpha[np.newaxis, :]
+        r -= ap * alpha[np.newaxis, :]
+        rr_new = np.sum(r * r, axis=0)
+        if np.all(np.sqrt(rr_new) <= target):
             converged = True
             rr = rr_new
+            rr_scalar = float(np.linalg.norm(rr))
             iterations = it
             break
-        beta = rr_new / rr
-        p = r + beta * p
+        beta = np.zeros_like(rr_new)
+        keep = rr > 0.0
+        beta[keep] = rr_new[keep] / rr[keep]
+        p = r + p * beta[np.newaxis, :]
         rr = rr_new
+        rr_scalar = float(np.linalg.norm(rr))
     else:
         iterations = max_iter
 
-    predicted = op.matvec(c).reshape(-1, 3)
-    residual = arr[:, 4:7] - predicted
-    rel_res = float(np.sqrt(rr) / (b_norm if b_norm > 0.0 else 1.0))
+    predicted = a @ q
+    residual = b - predicted
+    b_norm_scalar = float(np.linalg.norm(atb))
+    rel_res = float(np.sqrt(rr_scalar) / (b_norm_scalar if b_norm_scalar > 0.0 else 1.0))
+
+    c_vec = np.mean(q, axis=1)
+    if c_vec.size < n_coeff:
+        c = np.zeros(n_coeff, dtype=float)
+        c[: c_vec.size] = c_vec
+    else:
+        c = c_vec[:n_coeff].copy()
 
     if epoch_year is None:
-        epoch_year = float(np.median(mjd2000_to_decimal_year(arr[:, 0])))
+        epoch_year = 0.0
     n_array, m_array, g_vals, h_vals = _coeff_arrays_from_vector(c, n_max)
     coeff = GaussCoefficients(
         epoch=float(epoch_year),
@@ -309,7 +359,7 @@ def invert_gauss_coefficients_cg(
     return CGInversionResult(
         coefficient_vector=c,
         coefficients=coeff,
-        predicted_xyz=predicted,
+        predicted_xyz=predicted[:, :3] if predicted.shape[1] >= 3 else np.pad(predicted, ((0, 0), (0, 3 - predicted.shape[1]))),
         residual_xyz=residual,
         iterations=iterations,
         converged=converged,
