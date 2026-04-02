@@ -55,7 +55,7 @@ user parameter:
        data=data,
        n_max=8,
        lambda_reg=1000.0,
-        regularization="identity",  # or "Manojs_scheme"
+        regularization="identity",  # or "Manojs_scheme" / "Ohmic_heating"
         max_iter=200,
         tol=1e-8,
         use_cache=True,
@@ -67,6 +67,9 @@ user parameter:
 ``regularization="Manojs_scheme"`` uses
 ``R = L^T L`` with ``L = diag((1:n_coeff)^2)`` in
 ``(J^T J + lambda_reg * R) c = J^T d``.
+``regularization="Ohmic_heating"`` uses a degree-weighted diagonal
+for coefficient-space dissipation control:
+``diag_i = 4*pi*(Re/Rcmb)^(2*n+3)*(n+1)*(2*n+1)*(2*n+3)/n``.
 
 L-curve
 -------
@@ -108,3 +111,25 @@ epoch ``2020.0`` for both IGRF and WMM models, using RMS coefficient error:
 - clean synthetic data (expect near-zero RMS)
 - 5% Gaussian component noise
 - 10% Gaussian component noise
+
+Global-Grid Runner
+------------------
+
+For reproducible synthetic recovery experiments with configurable
+regularization, lambda, epoch/date, and noise, use:
+
+.. code-block:: bash
+
+   python -m shgeomag.inversion.run_global_grid_inversion \
+     --model-path models/igrf14coeffs.txt \
+     --output output/estimated_gauss13_2020_20260330_04.txt \
+     --n-max 13 \
+     --epoch-year 2020.0 \
+     --date-utc 2020-01-01T00:00:00+00:00 \
+     --noise-percent 5 \
+     --seed 20260330 \
+     --use-regularization \
+     --regularization Ohmic_heating \
+     --lambda-reg 0.0001 \
+     --grid-nx 20 \
+     --grid-ny 20

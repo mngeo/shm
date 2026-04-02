@@ -3,6 +3,7 @@ import pytest
 
 from shgeomag.core.field import compute_geo
 from shgeomag.inversion.cg import (
+    _regularization_diagonal,
     compute_l_curve_tikhonov,
     forward_ned_from_coefficients,
     invert_gauss_coefficients_cg,
@@ -208,6 +209,54 @@ def test_invert_gauss_coefficients_tikhonov_Manojs_scheme_runs():
     assert out.coefficient_vector.shape == (n_coeff,)
     assert np.all(np.isfinite(out.coefficient_vector))
     assert np.all(np.isfinite(out.residual_xyz))
+
+
+def test_invert_gauss_coefficients_tikhonov_Ohmic_heating_runs():
+    rng = np.random.default_rng(1991)
+    n_max = 3
+    n_coeff = n_max * (n_max + 2)
+    c_true = rng.normal(0.0, 100.0, size=n_coeff)
+
+    n = 100
+    gc_lat_deg = rng.uniform(-70.0, 70.0, n)
+    lon_deg = rng.uniform(0.0, 360.0, n)
+    r_km = rng.uniform(6350.0, 6800.0, n)
+    pred = forward_ned_from_coefficients(
+        c_true,
+        np.deg2rad(gc_lat_deg),
+        np.deg2rad(lon_deg),
+        r_km,
+        n_max=n_max,
+        use_cache=True,
+    )
+    data = np.column_stack([np.full(n, 100.0), gc_lat_deg, lon_deg, r_km, pred[:, 0], pred[:, 1], pred[:, 2]])
+
+    out = invert_gauss_coefficients_cg_tikhonov(
+        data,
+        n_max=n_max,
+        lambda_reg=5.0,
+        regularization="Ohmic_heating",
+        max_iter=1000,
+        tol=1e-12,
+        use_cache=True,
+    )
+    assert out.coefficient_vector.shape == (n_coeff,)
+    assert np.all(np.isfinite(out.coefficient_vector))
+    assert np.all(np.isfinite(out.residual_xyz))
+
+
+def test_ohmic_heating_regularization_diagonal_uses_non_inverse_factor():
+    n_max = 3
+    n_coeff = n_max * (n_max + 2)
+    diag = _regularization_diagonal(n_coeff=n_coeff, regularization="Ohmic_heating", n_max=n_max)
+    assert diag.shape == (n_coeff,)
+    assert np.all(np.isfinite(diag))
+    assert np.all(diag > 0.0)
+
+    # g10 and g11 share degree n=1 and must therefore have identical weights.
+    assert np.isclose(diag[0], diag[1], rtol=0.0, atol=0.0)
+    # Degree n=2 weight is larger than n=1 with this non-inverse definition.
+    assert diag[3] > diag[0]
 
 
 def test_compute_l_curve_tikhonov_returns_norm_arrays():

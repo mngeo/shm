@@ -492,7 +492,7 @@ user parameter:</p>
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
     <span class="n">n_max</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
     <span class="n">lambda_reg</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">,</span>
-     <span class="n">regularization</span><span class="o">=</span><span class="s2">&quot;identity&quot;</span><span class="p">,</span>  <span class="c1"># or &quot;Manojs_scheme&quot;</span>
+     <span class="n">regularization</span><span class="o">=</span><span class="s2">&quot;identity&quot;</span><span class="p">,</span>  <span class="c1"># or &quot;Manojs_scheme&quot; / &quot;Ohmic_heating&quot;</span>
      <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
      <span class="n">tol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
      <span class="n">use_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -504,7 +504,10 @@ user parameter:</p>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">regularization=&quot;Manojs_scheme&quot;</span></code> uses
 <code class="docutils literal notranslate"><span class="pre">R</span> <span class="pre">=</span> <span class="pre">L^T</span> <span class="pre">L</span></code> with <code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">=</span> <span class="pre">diag((1:n_coeff)^2)</span></code> in
-<code class="docutils literal notranslate"><span class="pre">(J^T</span> <span class="pre">J</span> <span class="pre">+</span> <span class="pre">lambda_reg</span> <span class="pre">*</span> <span class="pre">R)</span> <span class="pre">c</span> <span class="pre">=</span> <span class="pre">J^T</span> <span class="pre">d</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">(J^T</span> <span class="pre">J</span> <span class="pre">+</span> <span class="pre">lambda_reg</span> <span class="pre">*</span> <span class="pre">R)</span> <span class="pre">c</span> <span class="pre">=</span> <span class="pre">J^T</span> <span class="pre">d</span></code>.
+<code class="docutils literal notranslate"><span class="pre">regularization=&quot;Ohmic_heating&quot;</span></code> uses a degree-weighted diagonal
+for coefficient-space dissipation control:
+<code class="docutils literal notranslate"><span class="pre">diag_i</span> <span class="pre">=</span> <span class="pre">4*pi*(Re/Rcmb)^(2*n+3)*(n+1)*(2*n+1)*(2*n+3)/n</span></code>.</p>
 </section>
 <section id="l-curve">
 <h2>L-curve<a class="headerlink" href="#l-curve" title="Link to this heading">#</a></h2>
@@ -545,6 +548,26 @@ epoch <code class="docutils literal notranslate"><span class="pre">2020.0</span>
 <li><p>5% Gaussian component noise</p></li>
 <li><p>10% Gaussian component noise</p></li>
 </ul>
+</section>
+<section id="global-grid-runner">
+<h2>Global-Grid Runner<a class="headerlink" href="#global-grid-runner" title="Link to this heading">#</a></h2>
+<p>For reproducible synthetic recovery experiments with configurable
+regularization, lambda, epoch/date, and noise, use:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>shgeomag.inversion.run_global_grid_inversion<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--model-path<span class="w"> </span>models/igrf14coeffs.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>output/estimated_gauss13_2020_20260330_04.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--n-max<span class="w"> </span><span class="m">13</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--epoch-year<span class="w"> </span><span class="m">2020</span>.0<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--date-utc<span class="w"> </span><span class="m">2020</span>-01-01T00:00:00+00:00<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--noise-percent<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--seed<span class="w"> </span><span class="m">20260330</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--use-regularization<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--regularization<span class="w"> </span>Ohmic_heating<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--lambda-reg<span class="w"> </span><span class="m">0</span>.0001<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--grid-nx<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--grid-ny<span class="w"> </span><span class="m">20</span>
+</pre></div>
+</div>
 </section>
 </section>
 
@@ -591,6 +614,7 @@ epoch <code class="docutils literal notranslate"><span class="pre">2020.0</span>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#l-curve">L-curve</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#practical-pipeline-notes">Practical Pipeline Notes</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#synthetic-recovery-tests">Synthetic Recovery Tests</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#global-grid-runner">Global-Grid Runner</a></li>
 </ul>
   </nav></div>
 

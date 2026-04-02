@@ -7,6 +7,7 @@ from typing import Literal
 
 import numpy as np
 
+from shgeomag._constants import A_REF_KM
 from shgeomag.core.design_matrix import build_ned_jacobian
 from shgeomag.model.coefficients import GaussCoefficients
 from shgeomag.utils.time_utils import mjd2000_to_decimal_year
@@ -25,7 +26,7 @@ class CGInversionResult:
     final_relative_residual: float
 
 
-RegScheme = Literal["identity", "Manojs_scheme"]
+RegScheme = Literal["identity", "Manojs_scheme", "Ohmic_heating"]
 
 
 def _coeff_arrays_from_vector(c: np.ndarray, n_max: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -58,6 +59,7 @@ def _coeff_arrays_from_vector(c: np.ndarray, n_max: int) -> tuple[np.ndarray, np
 def _regularization_diagonal(
     n_coeff: int,
     regularization: RegScheme,
+    n_max: int | None = None,
     reg_diag: np.ndarray | None = None,
 ) -> np.ndarray:
     """Return diagonal entries of regularization matrix ``R``.
@@ -83,7 +85,27 @@ def _regularization_diagonal(
         idx = np.arange(1, n_coeff + 1, dtype=float)
         # L = diag((1:n_coeff)^2) -> L^T L = diag((1:n_coeff)^4)
         return idx**4
-    raise ValueError("regularization must be one of {'identity', 'Manojs_scheme'}")
+    if regularization == "Ohmic_heating":
+        if n_max is None:
+            raise ValueError("n_max is required for Ohmic_heating regularization")
+        if n_coeff != n_max * (n_max + 2):
+            raise ValueError("n_coeff does not match n_max for Ohmic_heating regularization")
+
+        re_km = A_REF_KM
+        rcmb_km = 3485.0
+        ratio = re_km / rcmb_km
+
+        degrees: list[int] = []
+        for n in range(1, n_max + 1):
+            for m in range(0, n + 1):
+                degrees.append(n)
+                if m > 0:
+                    degrees.append(n)
+        n_arr = np.asarray(degrees, dtype=float)
+        factor = 4.0 * np.pi * (ratio ** (2.0 * n_arr + 3.0)) * (n_arr + 1.0) * (2.0 * n_arr + 1.0) * (2.0 * n_arr + 3.0) / n_arr
+        return factor
+
+    raise ValueError("regularization must be one of {'identity', 'Manojs_scheme', 'Ohmic_heating'}")
 
 
 class _CachedNEDJacobianOperator:
@@ -391,12 +413,15 @@ def invert_gauss_coefficients_cg_tikhonov(
     lambda_reg : float
         Tikhonov regularization weight ``lambda`` applied as
         ``(J^T J + lambda I) c = J^T d``.
-    regularization : {"identity", "Manojs_scheme"}, default="identity"
+    regularization : {"identity", "Manojs_scheme", "Ohmic_heating"}, default="identity"
         Regularization matrix scheme ``R`` in
         ``(J^T J + lambda_reg * R) c = J^T d``.
         ``"identity"`` uses ``R = I``.
         ``"Manojs_scheme"`` uses ``R = L^T L`` with
         ``L = diag((1:n_coeff)^2)``.
+        ``"Ohmic_heating"`` uses a degree-weighted diagonal:
+        ``diag_i = 4*pi*(Re/Rcmb)^(2*n+3)*(n+1)*(2*n+1)*(2*n+3)/n``,
+        where ``n`` is the spherical-harmonic degree of coefficient ``i``.
     reg_diag : ndarray, optional
         Optional user-provided diagonal of ``R``. If provided, overrides
         ``regularization``.
@@ -448,7 +473,7 @@ def invert_gauss_coefficients_cg_tikhonov(
 
     op = _CachedNEDJacobianOperator(gc_lat_rad, lon_rad, r_km, n_max=n_max, use_cache=use_cache)
     n_coeff = op.n_coeff
-    reg_d = _regularization_diagonal(n_coeff, regularization=regularization, reg_diag=reg_diag)
+    reg_d = _regularization_diagonal(n_coeff, regularization=regularization, n_max=n_max, reg_diag=reg_diag)
 
     c = np.zeros(n_coeff, dtype=float) if x0 is None else np.asarray(x0, dtype=float).ravel().copy()
     if c.size != n_coeff:
@@ -538,7 +563,7 @@ def compute_l_curve_tikhonov(
         Target maximum spherical harmonic degree.
     lambda_values : ndarray
         1D array of non-negative Tikhonov regularization values.
-    regularization : {"identity", "Manojs_scheme"}, default="identity"
+    regularization : {"identity", "Manojs_scheme", "Ohmic_heating"}, default="identity"
         Regularization matrix scheme ``R`` in
         ``(J^T J + lambda_reg * R) c = J^T d``.
     reg_diag : ndarray, optional

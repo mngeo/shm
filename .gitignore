@@ -2,6 +2,7 @@
 /data/
 /models/
 /output/
+.codex
 *.pyc
 *.pyo
 __pycache__/

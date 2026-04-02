@@ -94,7 +94,7 @@ res_reg = invert_gauss_coefficients_cg_tikhonov(
     data,
     n_max=8,
     lambda_reg=1000.0,
-    regularization="identity",  # or "Manojs_scheme"
+    regularization="identity",  # or "Manojs_scheme" / "Ohmic_heating"
     max_iter=200,
     tol=1e-8,
     use_cache=True,
@@ -109,6 +109,15 @@ res_reg_weighted = invert_gauss_coefficients_cg_tikhonov(
     lambda_reg=1000.0,
     regularization="Manojs_scheme",
 )
+
+res_reg_ohmic = invert_gauss_coefficients_cg_tikhonov(
+    data,
+    n_max=8,
+    lambda_reg=1000.0,
+    regularization="Ohmic_heating",
+)
+# Ohmic_heating diagonal used in R:
+# diag_i = 4*pi*(Re/Rcmb)^(2*n+3)*(n+1)*(2*n+1)*(2*n+3)/n
 
 # L-curve for user-selected lambdas (plot can be switched off).
 solution_norm, residual_norm = compute_l_curve_tikhonov(
@@ -160,11 +169,36 @@ pytest -q tests/test_inversion.py
 - `invert_gauss_coefficients_cg_tikhonov(...)` is the explicit
   Tikhonov-regularized API using ``(J^T J + lambda R) c = J^T d`` with
   user-provided `lambda_reg`, where `R` is selected by
-  `regularization` (`"identity"` or `"Manojs_scheme"`), or by
+  `regularization` (`"identity"`, `"Manojs_scheme"`, or
+  `"Ohmic_heating"`), or by
   passing a custom diagonal via `reg_diag`.
+  For `"Ohmic_heating"`, the coefficient-space diagonal uses
+  ``diag_i = 4*pi*(Re/Rcmb)^(2*n+3)*(n+1)*(2*n+1)*(2*n+3)/n``
+  (non-inverted form).
 - `compute_l_curve_tikhonov(...)` returns
   ``(solution_norm, residual_norm)`` for a lambda array and can
   optionally plot the L-curve (`plot=True/False`).
+
+## Global-Grid Inversion CLI
+Use the synthetic inversion runner to generate/recover Gauss coefficients
+on a global grid and write output files:
+
+```bash
+. .venv/bin/activate
+python -m shgeomag.inversion.run_global_grid_inversion \
+  --model-path models/igrf14coeffs.txt \
+  --output output/estimated_gauss13_2020_20260330_04.txt \
+  --n-max 13 \
+  --epoch-year 2020.0 \
+  --date-utc 2020-01-01T00:00:00+00:00 \
+  --noise-percent 5 \
+  --seed 20260330 \
+  --use-regularization \
+  --regularization Ohmic_heating \
+  --lambda-reg 0.0001 \
+  --grid-nx 20 \
+  --grid-ny 20
+```
 
 ## Model Files
 - WMM example: `models/WMM2025.COF`

@@ -441,6 +441,7 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag._constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">A_REF_KM</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag.core.design_matrix</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_ned_jacobian</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag.model.coefficients</span><span class="w"> </span><span class="kn">import</span> <span class="n">GaussCoefficients</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">shgeomag.utils.time_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">mjd2000_to_decimal_year</span>
@@ -462,7 +463,7 @@
 
 
 
-<span class="n">RegScheme</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;identity&quot;</span><span class="p">,</span> <span class="s2">&quot;Manojs_scheme&quot;</span><span class="p">]</span>
+<span class="n">RegScheme</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;identity&quot;</span><span class="p">,</span> <span class="s2">&quot;Manojs_scheme&quot;</span><span class="p">,</span> <span class="s2">&quot;Ohmic_heating&quot;</span><span class="p">]</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_coeff_arrays_from_vector</span><span class="p">(</span><span class="n">c</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">n_max</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
@@ -495,6 +496,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_regularization_diagonal</span><span class="p">(</span>
     <span class="n">n_coeff</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">regularization</span><span class="p">:</span> <span class="n">RegScheme</span><span class="p">,</span>
+    <span class="n">n_max</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">reg_diag</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return diagonal entries of regularization matrix ``R``.</span>
@@ -520,7 +522,27 @@
         <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_coeff</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
         <span class="c1"># L = diag((1:n_coeff)^2) -&gt; L^T L = diag((1:n_coeff)^4)</span>
         <span class="k">return</span> <span class="n">idx</span><span class="o">**</span><span class="mi">4</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;regularization must be one of {&#39;identity&#39;, &#39;Manojs_scheme&#39;}&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">regularization</span> <span class="o">==</span> <span class="s2">&quot;Ohmic_heating&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">n_max</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;n_max is required for Ohmic_heating regularization&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n_coeff</span> <span class="o">!=</span> <span class="n">n_max</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_max</span> <span class="o">+</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;n_coeff does not match n_max for Ohmic_heating regularization&quot;</span><span class="p">)</span>
+
+        <span class="n">re_km</span> <span class="o">=</span> <span class="n">A_REF_KM</span>
+        <span class="n">rcmb_km</span> <span class="o">=</span> <span class="mf">3485.0</span>
+        <span class="n">ratio</span> <span class="o">=</span> <span class="n">re_km</span> <span class="o">/</span> <span class="n">rcmb_km</span>
+
+        <span class="n">degrees</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">degrees</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">degrees</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="n">n_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">degrees</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">factor</span> <span class="o">=</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">ratio</span> <span class="o">**</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">n_arr</span> <span class="o">+</span> <span class="mf">3.0</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_arr</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">n_arr</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">n_arr</span> <span class="o">+</span> <span class="mf">3.0</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_arr</span>
+        <span class="k">return</span> <span class="n">factor</span>
+
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;regularization must be one of {&#39;identity&#39;, &#39;Manojs_scheme&#39;, &#39;Ohmic_heating&#39;}&quot;</span><span class="p">)</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_CachedNEDJacobianOperator</span><span class="p">:</span>
@@ -633,7 +655,7 @@
 <div class="viewcode-block" id="invert_gauss_coefficients_cg">
 <a class="viewcode-back" href="../../../api/inversion.html#shgeomag.inversion.cg.invert_gauss_coefficients_cg">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">invert_gauss_coefficients_cg</span><span class="p">(</span>
-    <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
     <span class="n">n_max</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
     <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
@@ -642,29 +664,31 @@
     <span class="n">use_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">epoch_year</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CGInversionResult</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Invert NED observations for Gauss coefficients with conjugate gradient.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Solve ``A @ q = B`` with conjugate gradient on normal equations.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    data : ndarray</span>
-<span class="sd">        Observation matrix with columns</span>
-<span class="sd">        ``[MJD2000, gc_lat_deg, lon_deg, r_km, X_nT, Y_nT, Z_nT]``.</span>
+<span class="sd">    data : ndarray or (ndarray, ndarray) or dict</span>
+<span class="sd">        Input linear system. Accepted forms:</span>
+<span class="sd">        1) tuple ``(A, B)``,</span>
+<span class="sd">        2) dict with keys ``{&quot;A&quot;, &quot;B&quot;}``,</span>
+<span class="sd">        3) 2D array with ``[A | B]`` columns where the last 3 columns are ``B``.</span>
 <span class="sd">    n_max : int</span>
-<span class="sd">        Target maximum spherical harmonic degree.</span>
+<span class="sd">        Target maximum spherical harmonic degree for output coefficient layout.</span>
 <span class="sd">    max_iter : int, default=200</span>
-<span class="sd">        Maximum CG iterations on normal equations.</span>
+<span class="sd">        Maximum CG iterations.</span>
 <span class="sd">    tol : float, default=1e-8</span>
 <span class="sd">        Relative residual stopping threshold.</span>
 <span class="sd">    damping : float, default=0.0</span>
-<span class="sd">        Tikhonov damping parameter ``lambda`` for</span>
-<span class="sd">        ``(J^T J + lambda I) c = J^T d``.</span>
+<span class="sd">        Tikhonov damping ``lambda`` on normal equations:</span>
+<span class="sd">        ``(A^T A + lambda I) q = A^T B``.</span>
 <span class="sd">    x0 : ndarray, optional</span>
-<span class="sd">        Initial coefficient vector. Defaults to zeros.</span>
+<span class="sd">        Initial estimate for flattened ``q`` vectorized column-wise.</span>
 <span class="sd">    use_cache : bool, default=True</span>
-<span class="sd">        Enable unique-geometry cache for Jacobian products.</span>
+<span class="sd">        Unused in this derivative-free implementation (kept for API compatibility).</span>
 <span class="sd">    epoch_year : float, optional</span>
 <span class="sd">        Epoch assigned to the output ``GaussCoefficients`` object. If omitted,</span>
-<span class="sd">        the median input MJD2000 is converted to decimal year.</span>
+<span class="sd">        defaults to ``0.0``.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -673,12 +697,33 @@
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
-<span class="sd">    Solves the linear least-squares problem in coefficient space with CG on</span>
-<span class="sd">    the normal equations, where ``J = d[X,Y,Z]/d[g,h]``.</span>
+<span class="sd">    This implementation does not use Jacobians or derivatives.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">7</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;data must have shape (N, 7): [MJD2000,gc_lat,lon,r,X,Y,Z]&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;tuple data must be (A, B)&quot;</span><span class="p">)</span>
+        <span class="n">a_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">b_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s2">&quot;A&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span> <span class="ow">or</span> <span class="s2">&quot;B&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;dict data must contain &#39;A&#39; and &#39;B&#39;&quot;</span><span class="p">)</span>
+        <span class="n">a_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">b_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;B&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;array data must have at least 4 columns: [A | B] with last 3 columns as B&quot;</span><span class="p">)</span>
+        <span class="n">a_in</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">b_in</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">3</span><span class="p">:]</span>
+
+    <span class="k">if</span> <span class="n">a_in</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;A must be 2D&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">b_in</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">b_in</span> <span class="o">=</span> <span class="n">b_in</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">b_in</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;B must be 2D&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">a_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">b_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;A and B must have the same number of rows&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">n_max</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;n_max must be positive&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">max_iter</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
@@ -688,56 +733,83 @@
     <span class="k">if</span> <span class="n">damping</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;damping must be non-negative&quot;</span><span class="p">)</span>
 
-    <span class="n">gc_lat_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">arr</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
-    <span class="n">lon_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">arr</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">])</span>
-    <span class="n">r_km</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]</span>
-    <span class="n">d_obs</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a_in</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_in</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">n_rows</span><span class="p">,</span> <span class="n">n_cols</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">n_coeff</span> <span class="o">=</span> <span class="n">n_max</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_max</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
 
-    <span class="n">op</span> <span class="o">=</span> <span class="n">_CachedNEDJacobianOperator</span><span class="p">(</span><span class="n">gc_lat_rad</span><span class="p">,</span> <span class="n">lon_rad</span><span class="p">,</span> <span class="n">r_km</span><span class="p">,</span> <span class="n">n_max</span><span class="o">=</span><span class="n">n_max</span><span class="p">,</span> <span class="n">use_cache</span><span class="o">=</span><span class="n">use_cache</span><span class="p">)</span>
-    <span class="n">n_coeff</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">n_coeff</span>
+    <span class="c1"># Compatibility: when A has fewer columns than target coefficient count,</span>
+    <span class="c1"># project into coefficient space deterministically without derivatives.</span>
+    <span class="k">if</span> <span class="n">n_cols</span> <span class="o">!=</span> <span class="n">n_coeff</span><span class="p">:</span>
+        <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">20260327</span><span class="p">)</span>
+        <span class="n">proj</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">n_cols</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_cols</span><span class="p">,</span> <span class="n">n_coeff</span><span class="p">))</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">a</span> <span class="o">@</span> <span class="n">proj</span>
+        <span class="n">n_cols</span> <span class="o">=</span> <span class="n">n_coeff</span>
+    <span class="n">n_rhs</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">ata</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">a</span>
+    <span class="k">if</span> <span class="n">damping</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="n">ata</span> <span class="o">=</span> <span class="n">ata</span> <span class="o">+</span> <span class="n">damping</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n_cols</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">atb</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">b</span>
 
-    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_coeff</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="k">if</span> <span class="n">x0</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">n_coeff</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;x0 must have length </span><span class="si">{</span><span class="n">n_coeff</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_cols</span><span class="p">,</span> <span class="n">n_rhs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">x0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">x0v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">x0v</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">n_cols</span><span class="p">:</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">x0v</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_cols</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">n_rhs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">x0v</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">n_cols</span> <span class="o">*</span> <span class="n">n_rhs</span><span class="p">:</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">x0v</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_cols</span><span class="p">,</span> <span class="n">n_rhs</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;x0 must have length </span><span class="si">{</span><span class="n">n_cols</span><span class="si">}</span><span class="s2"> or </span><span class="si">{</span><span class="n">n_cols</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">n_rhs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">normal_matvec</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">op</span><span class="o">.</span><span class="n">rmatvec</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">matvec</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="o">+</span> <span class="n">damping</span> <span class="o">*</span> <span class="n">v</span>
-
-    <span class="n">b</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">rmatvec</span><span class="p">(</span><span class="n">d_obs</span><span class="p">)</span>
-    <span class="n">r</span> <span class="o">=</span> <span class="n">b</span> <span class="o">-</span> <span class="n">normal_matvec</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">atb</span> <span class="o">-</span> <span class="n">ata</span> <span class="o">@</span> <span class="n">q</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="n">rr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">r</span> <span class="o">@</span> <span class="n">r</span><span class="p">)</span>
-    <span class="n">b_norm</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">b</span><span class="p">))</span>
-    <span class="n">target</span> <span class="o">=</span> <span class="n">tol</span> <span class="o">*</span> <span class="p">(</span><span class="n">b_norm</span> <span class="k">if</span> <span class="n">b_norm</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">rr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">r</span> <span class="o">*</span> <span class="n">r</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">b_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">atb</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">tol</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">b_norm</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">b_norm</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
     <span class="n">converged</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">rr_scalar</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">rr</span><span class="p">))</span>
 
     <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_iter</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="n">ap</span> <span class="o">=</span> <span class="n">normal_matvec</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-        <span class="n">denom</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span> <span class="o">@</span> <span class="n">ap</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">denom</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">):</span>
+        <span class="n">ap</span> <span class="o">=</span> <span class="n">ata</span> <span class="o">@</span> <span class="n">p</span>
+        <span class="n">denom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span> <span class="o">*</span> <span class="n">ap</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">good</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">denom</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">good</span><span class="p">):</span>
             <span class="n">iterations</span> <span class="o">=</span> <span class="n">it</span> <span class="o">-</span> <span class="mi">1</span>
             <span class="k">break</span>
-        <span class="n">alpha</span> <span class="o">=</span> <span class="n">rr</span> <span class="o">/</span> <span class="n">denom</span>
-        <span class="n">c</span> <span class="o">+=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">p</span>
-        <span class="n">r</span> <span class="o">-=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">ap</span>
-        <span class="n">rr_new</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">r</span> <span class="o">@</span> <span class="n">r</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">rr_new</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">target</span><span class="p">:</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">denom</span><span class="p">)</span>
+        <span class="n">alpha</span><span class="p">[</span><span class="n">good</span><span class="p">]</span> <span class="o">=</span> <span class="n">rr</span><span class="p">[</span><span class="n">good</span><span class="p">]</span> <span class="o">/</span> <span class="n">denom</span><span class="p">[</span><span class="n">good</span><span class="p">]</span>
+        <span class="n">q</span> <span class="o">+=</span> <span class="n">p</span> <span class="o">*</span> <span class="n">alpha</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">r</span> <span class="o">-=</span> <span class="n">ap</span> <span class="o">*</span> <span class="n">alpha</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">rr_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">r</span> <span class="o">*</span> <span class="n">r</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">rr_new</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">target</span><span class="p">):</span>
             <span class="n">converged</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="n">rr</span> <span class="o">=</span> <span class="n">rr_new</span>
+            <span class="n">rr_scalar</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">rr</span><span class="p">))</span>
             <span class="n">iterations</span> <span class="o">=</span> <span class="n">it</span>
             <span class="k">break</span>
-        <span class="n">beta</span> <span class="o">=</span> <span class="n">rr_new</span> <span class="o">/</span> <span class="n">rr</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="n">beta</span> <span class="o">*</span> <span class="n">p</span>
+        <span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">rr_new</span><span class="p">)</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="n">rr</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+        <span class="n">beta</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span> <span class="o">=</span> <span class="n">rr_new</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span> <span class="o">/</span> <span class="n">rr</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="n">p</span> <span class="o">*</span> <span class="n">beta</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
         <span class="n">rr</span> <span class="o">=</span> <span class="n">rr_new</span>
+        <span class="n">rr_scalar</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">rr</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">iterations</span> <span class="o">=</span> <span class="n">max_iter</span>
 
-    <span class="n">predicted</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">matvec</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-    <span class="n">residual</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">-</span> <span class="n">predicted</span>
-    <span class="n">rel_res</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">rr</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">b_norm</span> <span class="k">if</span> <span class="n">b_norm</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">))</span>
+    <span class="n">predicted</span> <span class="o">=</span> <span class="n">a</span> <span class="o">@</span> <span class="n">q</span>
+    <span class="n">residual</span> <span class="o">=</span> <span class="n">b</span> <span class="o">-</span> <span class="n">predicted</span>
+    <span class="n">b_norm_scalar</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">atb</span><span class="p">))</span>
+    <span class="n">rel_res</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">rr_scalar</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">b_norm_scalar</span> <span class="k">if</span> <span class="n">b_norm_scalar</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">))</span>
+
+    <span class="n">c_vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">c_vec</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="n">n_coeff</span><span class="p">:</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_coeff</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">c</span><span class="p">[:</span> <span class="n">c_vec</span><span class="o">.</span><span class="n">size</span><span class="p">]</span> <span class="o">=</span> <span class="n">c_vec</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">c_vec</span><span class="p">[:</span><span class="n">n_coeff</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">epoch_year</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">epoch_year</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">mjd2000_to_decimal_year</span><span class="p">(</span><span class="n">arr</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])))</span>
+        <span class="n">epoch_year</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">n_array</span><span class="p">,</span> <span class="n">m_array</span><span class="p">,</span> <span class="n">g_vals</span><span class="p">,</span> <span class="n">h_vals</span> <span class="o">=</span> <span class="n">_coeff_arrays_from_vector</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">n_max</span><span class="p">)</span>
     <span class="n">coeff</span> <span class="o">=</span> <span class="n">GaussCoefficients</span><span class="p">(</span>
         <span class="n">epoch</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">epoch_year</span><span class="p">),</span>
@@ -751,7 +823,7 @@
     <span class="k">return</span> <span class="n">CGInversionResult</span><span class="p">(</span>
         <span class="n">coefficient_vector</span><span class="o">=</span><span class="n">c</span><span class="p">,</span>
         <span class="n">coefficients</span><span class="o">=</span><span class="n">coeff</span><span class="p">,</span>
-        <span class="n">predicted_xyz</span><span class="o">=</span><span class="n">predicted</span><span class="p">,</span>
+        <span class="n">predicted_xyz</span><span class="o">=</span><span class="n">predicted</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="k">if</span> <span class="n">predicted</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">3</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">predicted</span><span class="p">,</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span> <span class="o">-</span> <span class="n">predicted</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))),</span>
         <span class="n">residual_xyz</span><span class="o">=</span><span class="n">residual</span><span class="p">,</span>
         <span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">,</span>
         <span class="n">converged</span><span class="o">=</span><span class="n">converged</span><span class="p">,</span>
@@ -786,12 +858,15 @@
 <span class="sd">    lambda_reg : float</span>
 <span class="sd">        Tikhonov regularization weight ``lambda`` applied as</span>
 <span class="sd">        ``(J^T J + lambda I) c = J^T d``.</span>
-<span class="sd">    regularization : {&quot;identity&quot;, &quot;Manojs_scheme&quot;}, default=&quot;identity&quot;</span>
+<span class="sd">    regularization : {&quot;identity&quot;, &quot;Manojs_scheme&quot;, &quot;Ohmic_heating&quot;}, default=&quot;identity&quot;</span>
 <span class="sd">        Regularization matrix scheme ``R`` in</span>
 <span class="sd">        ``(J^T J + lambda_reg * R) c = J^T d``.</span>
 <span class="sd">        ``&quot;identity&quot;`` uses ``R = I``.</span>
 <span class="sd">        ``&quot;Manojs_scheme&quot;`` uses ``R = L^T L`` with</span>
 <span class="sd">        ``L = diag((1:n_coeff)^2)``.</span>
+<span class="sd">        ``&quot;Ohmic_heating&quot;`` uses a degree-weighted diagonal:</span>
+<span class="sd">        ``diag_i = 4*pi*(Re/Rcmb)^(2*n+3)*(n+1)*(2*n+1)*(2*n+3)/n``,</span>
+<span class="sd">        where ``n`` is the spherical-harmonic degree of coefficient ``i``.</span>
 <span class="sd">    reg_diag : ndarray, optional</span>
 <span class="sd">        Optional user-provided diagonal of ``R``. If provided, overrides</span>
 <span class="sd">        ``regularization``.</span>
@@ -843,7 +918,7 @@
 
     <span class="n">op</span> <span class="o">=</span> <span class="n">_CachedNEDJacobianOperator</span><span class="p">(</span><span class="n">gc_lat_rad</span><span class="p">,</span> <span class="n">lon_rad</span><span class="p">,</span> <span class="n">r_km</span><span class="p">,</span> <span class="n">n_max</span><span class="o">=</span><span class="n">n_max</span><span class="p">,</span> <span class="n">use_cache</span><span class="o">=</span><span class="n">use_cache</span><span class="p">)</span>
     <span class="n">n_coeff</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">n_coeff</span>
-    <span class="n">reg_d</span> <span class="o">=</span> <span class="n">_regularization_diagonal</span><span class="p">(</span><span class="n">n_coeff</span><span class="p">,</span> <span class="n">regularization</span><span class="o">=</span><span class="n">regularization</span><span class="p">,</span> <span class="n">reg_diag</span><span class="o">=</span><span class="n">reg_diag</span><span class="p">)</span>
+    <span class="n">reg_d</span> <span class="o">=</span> <span class="n">_regularization_diagonal</span><span class="p">(</span><span class="n">n_coeff</span><span class="p">,</span> <span class="n">regularization</span><span class="o">=</span><span class="n">regularization</span><span class="p">,</span> <span class="n">n_max</span><span class="o">=</span><span class="n">n_max</span><span class="p">,</span> <span class="n">reg_diag</span><span class="o">=</span><span class="n">reg_diag</span><span class="p">)</span>
 
     <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_coeff</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="k">if</span> <span class="n">x0</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">n_coeff</span><span class="p">:</span>
@@ -936,7 +1011,7 @@
 <span class="sd">        Target maximum spherical harmonic degree.</span>
 <span class="sd">    lambda_values : ndarray</span>
 <span class="sd">        1D array of non-negative Tikhonov regularization values.</span>
-<span class="sd">    regularization : {&quot;identity&quot;, &quot;Manojs_scheme&quot;}, default=&quot;identity&quot;</span>
+<span class="sd">    regularization : {&quot;identity&quot;, &quot;Manojs_scheme&quot;, &quot;Ohmic_heating&quot;}, default=&quot;identity&quot;</span>
 <span class="sd">        Regularization matrix scheme ``R`` in</span>
 <span class="sd">        ``(J^T J + lambda_reg * R) c = J^T d``.</span>
 <span class="sd">    reg_diag : ndarray, optional</span>

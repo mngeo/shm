@@ -51,6 +51,9 @@ operations and a matrix-form design-matrix approach.
     with explicit `lambda_reg` and selectable `regularization`:
     - `identity`: ``R = I``
     - `Manojs_scheme`: ``R = L^T L``, ``L = diag((1:n_coeff)^2)``
+    - `Ohmic_heating`:
+      ``diag_i = 4π (Re/Rcmb)^(2n+3) (n+1)(2n+1)(2n+3)/n``
+      (no inverse operator)
     Optional `reg_diag` may override both as a custom diagonal ``R``.
 14. L-curve evaluation must sweep user-provided lambda values and return
     both `||c||_2` (solution norm) and `||d - Jc||_2` (residual norm).
